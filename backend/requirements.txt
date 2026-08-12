@@ -1,0 +1,8 @@
+fastapi #the web framework that exposes the endpoints
+uvicorn[standard] #the server that runs the FastAPI
+python-multipart #lets fastapi recieve uploaded PDF files
+pypdf #extract text out of pdf
+chromadb #local vector database(stores your document chunks as vectors, searches them)
+sentence-transformers #turns text into vectors(embeddings);pulls in cpu pytorch automatically
+httpx #makes calls from python to local ollama service.
+pydantic-settings #clean way to hold config(model names, paths)

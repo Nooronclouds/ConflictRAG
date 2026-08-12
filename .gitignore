@@ -1,0 +1,42 @@
+# ---------- Python ----------
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# ---------- Secrets / config ----------
+.env
+.env.*
+!.env.example
+
+# ---------- Runtime data (knowledge base, uploads, vector DB) ----------
+backend/data/
+data/
+*.sqlite3
+chroma_db/
+
+# ---------- Models / caches ----------
+.cache/
+*.bin
+*.safetensors
+
+# ---------- Frontend (Chetan's side) ----------
+node_modules/
+frontend/dist/
+frontend/.vite/
+*.local
+
+# ---------- Logs ----------
+logs/
+*.log
+
+# ---------- OS junk ----------
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# ---------- Editors ----------
+.vscode/
+.idea/
