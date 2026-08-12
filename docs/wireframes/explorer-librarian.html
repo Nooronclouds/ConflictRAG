@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ConflictRAG — Explorer + Librarian wireframe</title>
+<style>
+  :root{
+    --bg:#f6f6f4; --surface:#ffffff; --line:#e3e3df; --text:#26261f;
+    --muted:#6b6b64; --hint:#9a9a92; --accent:#185fa5; --accent-bg:#e6f1fb;
+    --ok:#0f6e56; --ok-bg:#e1f5ee; --warn:#854f0b; --warn-bg:#faeeda;
+    --danger:#a32d2d; --danger-bg:#fcebeb;
+    --font:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{font-family:var(--font);background:var(--bg);color:var(--text);margin:0;padding:28px;font-size:13px;line-height:1.5}
+  .caption{max-width:920px;margin:0 auto 14px;color:var(--muted);font-size:13px}
+  .caption b{color:var(--text);font-weight:600}
+  .app{max-width:920px;margin:0 auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .topbar{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line)}
+  .brand{font-weight:600;color:var(--accent)}
+  .crumb{color:var(--muted);font-size:12.5px}
+  .spacer{flex:1}
+  .chip{font-size:12px;border:1px solid var(--line);border-radius:8px;padding:5px 10px;color:var(--muted)}
+  .chip.act{color:var(--accent);border-color:#bcd7f0}
+  .body{display:flex;min-height:340px}
+  .nav{width:170px;border-right:1px solid var(--line);padding:12px 10px}
+  .nav .root{color:var(--muted);padding:6px 8px;font-weight:600}
+  .nav .item{padding:6px 8px 6px 22px;color:var(--muted);border-radius:8px}
+  .nav .item.sel{color:var(--text);background:var(--accent-bg)}
+  .files{flex:1;border-right:1px solid var(--line);padding:10px}
+  .files .head{display:flex;justify-content:space-between;color:var(--hint);font-size:11px;padding:4px 10px}
+  .row{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px}
+  .row.alt{background:#faf9f7}
+  .row .name{flex:1}
+  .pill{font-size:11px;padding:2px 8px;border-radius:8px}
+  .pill.ok{color:var(--ok);background:var(--ok-bg)}
+  .pill.warn{color:var(--warn);background:var(--warn-bg)}
+  .lib{width:270px;display:flex;flex-direction:column}
+  .lib .head{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--line);font-weight:600}
+  .lib .body2{flex:1;padding:12px 14px}
+  .q{display:flex;justify-content:flex-end;margin-bottom:12px}
+  .q span{background:var(--accent-bg);color:var(--accent);padding:7px 11px;border-radius:12px;max-width:85%}
+  .a{color:var(--text);margin-bottom:9px}
+  .cite{display:inline-block;font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:8px;padding:3px 8px}
+  .input{display:flex;align-items:center;gap:9px;padding:11px 14px;border-top:1px solid var(--line)}
+  .clip{color:var(--hint);font-size:16px}
+  .askbox{flex:1;font-size:12px;color:var(--hint);border:1px solid var(--line);border-radius:8px;padding:8px 11px}
+  .send{color:var(--accent);font-weight:600}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block}
+  .ficon{width:14px;height:14px;border:1.5px solid var(--muted);border-radius:2px;display:inline-block}
+  .folder{width:15px;height:11px;background:var(--accent-bg);border:1.5px solid var(--accent);border-radius:2px;display:inline-block}
+</style>
+</head>
+<body>
+  <div class="caption">ConflictRAG main workspace — three panes like <b>Windows File Explorer</b>: folder tree · file list · the <b>Librarian</b> (ask + answer) in the details-pane slot.</div>
+  <div class="app">
+    <div class="topbar">
+      <span class="brand">ConflictRAG</span>
+      <span class="crumb">Knowledge base › Policies</span>
+      <span class="spacer"></span>
+      <span class="chip">find a file</span>
+      <span class="chip act">+ upload</span>
+    </div>
+    <div class="body">
+      <div class="nav">
+        <div class="root">Knowledge base</div>
+        <div class="item sel"><span class="folder"></span>&nbsp; Policies</div>
+        <div class="item">Contracts</div>
+        <div class="item">Reports</div>
+        <div class="item">Compliance</div>
+      </div>
+      <div class="files">
+        <div class="head"><span>name</span><span>status</span></div>
+        <div class="row"><span class="ficon"></span><span class="name">Leave policy v1.pdf</span><span class="pill ok">ready</span></div>
+        <div class="row alt"><span class="ficon"></span><span class="name">Leave addendum 2025.pdf</span><span class="pill ok">ready</span></div>
+        <div class="row"><span class="ficon"></span><span class="name">Travel expenses.pdf</span><span class="pill warn">processing</span></div>
+        <div class="row"><span class="ficon"></span><span class="name">Remote work rules.pdf</span><span class="pill ok">ready</span></div>
+      </div>
+      <div class="lib">
+        <div class="head">Librarian</div>
+        <div class="body2">
+          <div class="q"><span>How many days of leave do part-time staff get?</span></div>
+          <div class="a">Part-time staff receive 12 days of annual leave, prorated by hours worked.</div>
+          <span class="cite">Leave policy v1 · p.3</span>
+        </div>
+        <div class="input">
+          <span class="clip">&#128206;</span>
+          <span class="askbox">Ask about your knowledge base</span>
+          <span class="send">send</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
