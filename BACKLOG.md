@@ -12,3 +12,10 @@
 
 ## Research
 - [ ] Grow the conflict eval set beyond the starter (target 30–50+, add negatives).
+
+## API contract
+- [ ] Update docs/api-contract.md: conflict `sources` use `excerpt` (+ doc, page), matching pipeline output. Sync with Chetan.
+
+## Research / CARL accuracy
+- [ ] Taxonomy classifier: current type is a regex heuristic (checks "year" before "number"), so a value-change-with-dates is labeled `temporal`, not `factual`. Upgrade to a proper classifier.
+- [ ] Sentence-level conflict detection: NLI currently compares whole ~800-char chunks; extract claims/sentences to reduce false positives on real documents.

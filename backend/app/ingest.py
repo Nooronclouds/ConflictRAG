@@ -45,3 +45,15 @@ def ingest_pdf(pdf_path: Path, doc_title: str | None = None) -> int:
     if documents:
         collection.add(ids=ids, documents=documents, metadatas=metadatas)
     return len(documents)
+
+def ingest_text(text: str, title: str, source: str, page: int = 1) -> int:
+    """Ingest a raw string as a document (handy for tests and the attach flow)."""
+    collection = get_collection()
+    ids, docs, metas = [], [], []
+    for chunk in chunk_text(text, settings.chunk_size, settings.chunk_overlap):
+        ids.append(str(uuid.uuid4()))
+        docs.append(chunk)
+        metas.append({"title": title, "page": page, "source": source})
+    if docs:
+        collection.add(ids=ids, documents=docs, metadatas=metas)
+    return len(docs)
