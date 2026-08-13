@@ -2,13 +2,15 @@ import re
 from itertools import combinations
 from app.nli import check_pair
 
-CONFLICT_THRESHOLD = 0.6   # min contradiction score to call it a conflict
+CONFLICT_THRESHOLD = 0.6
+
+# Words that signal one document is revising/superseding another.
+REVISION_WORDS = ["revised", "amended", "amendment", "supersede", "superseded",
+                  "effective", "updated", "addendum", "with effect from", "w.e.f"]
 
 
 def classify_conflict(a: str, b: str) -> str:
-    """Guess the conflict type from the text (simple heuristic — v1)."""
-    year = re.compile(r"\b(19|20)\d{2}\b")
-    if year.search(a) and year.search(b):
+    if re.search(r"\b(19|20)\d{2}\b", a) and re.search(r"\b(19|20)\d{2}\b", b):
         return "temporal"
     if re.search(r"\b\d+\b", a) and re.search(r"\b\d+\b", b):
         return "factual"
@@ -16,11 +18,8 @@ def classify_conflict(a: str, b: str) -> str:
 
 
 def detect_conflicts(hits: list[dict]) -> list[dict]:
-    """Compare retrieved chunks pairwise with NLI; return any contradicting pairs."""
     conflicts = []
     for h1, h2 in combinations(hits, 2):
-        # Compare chunks from DIFFERENT documents only — a document 'contradicting
-        # itself' is usually just chunk-boundary noise. Cross-doc is the real signal.
         if h1["source"] == h2["source"]:
             continue
         result = check_pair(h1["text"], h2["text"])
@@ -34,5 +33,34 @@ def detect_conflicts(hits: list[dict]) -> list[dict]:
                     {"doc": h2["title"], "page": h2["page"], "excerpt": h2["text"][:200]},
                 ],
             })
-    conflicts.sort(key=lambda c: c["score"], reverse=True)   # strongest first
+    conflicts.sort(key=lambda c: c["score"], reverse=True)
     return conflicts
+
+
+def _latest_year(text: str):
+    years = [int(y) for y in re.findall(r"\b(?:19|20)\d{2}\b", text)]
+    return max(years) if years else None
+
+
+def reconcile(conflict: dict) -> dict:
+    """Decide if a conflict is RESOLVABLE (a newer/revising source supersedes the other)
+    or GENUINE (no resolution signal -> should halt and ask the user)."""
+    a, b = conflict["sources"][0], conflict["sources"][1]
+    ta, tb = a["excerpt"].lower(), b["excerpt"].lower()
+    ya, yb = _latest_year(ta), _latest_year(tb)
+
+    governing = superseded = None
+    if ya and yb and ya != yb:                       # different dates -> newer governs
+        governing, superseded = (a, b) if ya > yb else (b, a)
+    else:                                            # else: which one uses revision language?
+        a_rev = any(w in ta for w in REVISION_WORDS)
+        b_rev = any(w in tb for w in REVISION_WORDS)
+        if a_rev and not b_rev:
+            governing, superseded = a, b
+        elif b_rev and not a_rev:
+            governing, superseded = b, a
+
+    if governing:
+        return {"resolvable": True, "kind": conflict["kind"],
+                "governing": governing, "superseded": superseded}
+    return {"resolvable": False, "kind": conflict["kind"], "sources": conflict["sources"]}

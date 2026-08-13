@@ -24,3 +24,5 @@
 - [ ] Tag each related_source as supporting / contradicting / neutral vs the answer (scite-style grouping), using NLI.
 - [ ] Citations currently return all retrieved chunks including noise (e.g. acknowledgements, p.4). Return only the chunks the answer actually used, and drop low-relevance ones (score below a threshold).
 - [ ] related_sources is one-per-document by design — validate richness on a real multi-document KB.
+
+- [ ] api-contract.md: add the `resolved` response type (governing + superseded + note) as a 4th shape alongside confident/conflict/not_found. Sync with Chetan.

@@ -1,17 +1,16 @@
 from app.config import settings
 from app.retrieve import retrieve
 from app.generate import generate_answer
-from app.conflict import detect_conflicts
+from app.conflict import detect_conflicts, reconcile
 from app.store import get_collection
 
-RELATED_K = 8   # how many chunks to scan for the "related sources" reading list
+RELATED_K = 8
 
 
-def _related_sources(hits: list[dict]) -> list[dict]:
-    """Collapse retrieved chunks into a per-document reading list (best chunk per doc)."""
+def _related_sources(hits):
     seen = {}
     for h in hits:
-        if h["source"] not in seen:          # keep the highest-ranked chunk per document
+        if h["source"] not in seen:
             seen[h["source"]] = {"doc": h["title"], "page": h["page"],
                                  "excerpt": h["text"][:160], "relevance": h["score"]}
     return list(seen.values())
@@ -22,14 +21,30 @@ def answer_question(question: str, mode: str = "conflictrag") -> dict:
         return {"type": "not_found",
                 "message": "The knowledge base is empty. Add a source first."}
 
-    hits_all = retrieve(question, top_k=RELATED_K)   # broad set, retrieved once
-    hits = hits_all[:settings.top_k]                 # top few to actually answer from
-    related = _related_sources(hits_all)             # the "further reading" list
+    hits_all = retrieve(question, top_k=RELATED_K)
+    hits = hits_all[:settings.top_k]
+    related = _related_sources(hits_all)
 
     if mode == "conflictrag":
-        conflicts = detect_conflicts(hits_all)       # scan the broader set for conflicts
+        conflicts = detect_conflicts(hits_all)
         if conflicts:
-            top = conflicts[0]
+            reconciled = reconcile(conflicts[0])
+
+            if reconciled["resolvable"]:                       # revision -> answer + note
+                gov, sup = reconciled["governing"], reconciled["superseded"]
+                gov_hit = {"text": gov["excerpt"], "title": gov["doc"], "page": gov["page"]}
+                answer = generate_answer(question, [gov_hit], mode=mode)
+                return {
+                    "type": "resolved",
+                    "conflict_kind": reconciled["kind"],
+                    "answer": answer,
+                    "governing": gov,
+                    "superseded": sup,
+                    "note": f"This supersedes an earlier value from {sup['doc']}.",
+                    "related_sources": related,
+                }
+
+            top = conflicts[0]                                 # genuine -> halt and ask
             return {
                 "type": "conflict",
                 "conflict_kind": top["kind"],
