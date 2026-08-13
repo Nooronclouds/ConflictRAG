@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ConflictRAG — Librarian response states (v2)</title>
+<style>
+  :root{
+    --bg:#f6f6f4; --surface:#ffffff; --line:#e3e3df; --text:#26261f;
+    --muted:#6b6b64; --hint:#9a9a92; --accent:#185fa5; --accent-bg:#e6f1fb;
+    --ok:#0f6e56; --ok-bg:#e1f5ee; --warn:#854f0b; --warn-bg:#faeeda;
+    --danger:#a32d2d; --danger-bg:#fcebeb; --danger-line:#e3a3a3;
+    --font:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{font-family:var(--font);background:var(--bg);color:var(--text);margin:0;padding:28px;font-size:13px;line-height:1.55}
+  .wrap{max-width:580px;margin:0 auto}
+  h1{font-size:16px;font-weight:600;margin:0 0 4px}
+  .sub{color:var(--muted);margin:0 0 22px}
+  .label{font-size:11px;color:var(--hint);margin:20px 2px 8px;text-transform:uppercase;letter-spacing:.04em}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px 15px}
+  .card.conflict{border-color:var(--danger-line)}
+  .q{display:flex;justify-content:flex-end;margin-bottom:12px}
+  .q span{background:var(--accent-bg);color:var(--accent);padding:7px 11px;border-radius:12px;max-width:80%}
+  .tag{display:inline-flex;align-items:center;gap:7px;font-weight:600;font-size:12.5px;margin-bottom:8px}
+  .tag.ok{color:var(--ok)} .tag.info{color:var(--muted)} .tag.bad{color:var(--danger)}
+  .chip{font-size:11px;padding:2px 8px;border-radius:8px;font-weight:400;background:var(--accent-bg);color:var(--accent)}
+  .chip.bad{background:var(--danger-bg);color:var(--danger)}
+  .a{color:var(--text);margin-bottom:9px}
+  .cite{display:inline-block;font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:8px;padding:3px 8px}
+  .hist{display:flex;gap:8px;align-items:center;border-left:2px solid #cfcfc9;padding:5px 0 5px 10px;font-size:12px;color:var(--muted)}
+  .strike{text-decoration:line-through}
+  .sources{display:flex;gap:10px;flex-wrap:wrap}
+  .src{flex:1;min-width:200px;border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+  .src .val{font-size:15px;font-weight:600}
+  .src .meta{font-size:11px;color:var(--hint);margin-top:2px}
+  .note{font-size:12px;color:var(--muted);margin-top:10px}
+  .rl-title{display:flex;gap:7px;align-items:center;font-size:12px;font-weight:600;color:var(--muted);margin:14px 2px 6px}
+  .rl{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .rl .row{display:flex;gap:10px;align-items:center;padding:8px 10px}
+  .rl .row+.row{border-top:1px solid var(--line)}
+  .rl .name{flex:1}
+  .rl .n1{font-size:12.5px} .rl .n2{font-size:11px;color:var(--hint)}
+  .rl .score{font-size:11px;color:var(--muted)}
+  .btn{display:inline-block;font-size:12px;color:var(--accent);border:1px solid #bcd7f0;border-radius:8px;padding:5px 10px;margin-top:10px}
+  .ficon{width:13px;height:16px;border:1.5px solid var(--muted);border-radius:2px;display:inline-block}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>The Librarian's four answer states</h1>
+    <p class="sub">Every /ask response is one of these four — and each carries a "related sources" reading list (shown once at the bottom; it rides under all four).</p>
+
+    <div class="label">1 · Confident — answer + sources</div>
+    <div class="card">
+      <div class="q"><span>How many days of leave do part-time staff get?</span></div>
+      <div class="tag ok">&#10003; Answer</div>
+      <div class="a">Part-time staff receive 12 days of annual leave, prorated by hours worked.</div>
+      <span class="cite">Leave policy v1 · p.3</span>
+    </div>
+
+    <div class="label">2 · Resolved — a revision, answered with its history (new)</div>
+    <div class="card">
+      <div class="q"><span>What is the daily travel allowance?</span></div>
+      <div class="tag ok">&#10003; Current answer <span class="chip">resolved · temporal</span></div>
+      <div class="a">The current travel allowance is <b>&#8377;250 / day</b>, per the 2025 addendum.</div>
+      <div class="hist">&#8635; Supersedes <span class="strike">&#8377;500 / day</span> · Travel Policy v1 · 2021</div>
+    </div>
+
+    <div class="label">3 · Conflict — genuine clash, user decides</div>
+    <div class="card conflict">
+      <div class="tag bad">&#9650; Sources disagree <span class="chip bad">factual conflict</span></div>
+      <div class="sources">
+        <div class="src"><div class="val">200 people</div><div class="meta">Facilities A · p.1</div></div>
+        <div class="src"><div class="val">350 people</div><div class="meta">Facilities B · p.1</div></div>
+      </div>
+      <div class="note">No revision signal to resolve this. Which source applies?</div>
+    </div>
+
+    <div class="label">4 · Not found — honest refusal</div>
+    <div class="card">
+      <div class="q"><span>What is the penalty for late tax filing in 2026?</span></div>
+      <div class="tag info">&#9432; Not in the knowledge base</div>
+      <div class="a">None of the documents cover this. I won't guess — add a source and I'll answer from it.</div>
+      <span class="btn">+ add a source</span>
+    </div>
+
+    <div class="rl-title">&#128218; Related in your knowledge base — appears under every answer above</div>
+    <div class="rl">
+      <div class="row"><span class="ficon"></span><div class="name"><div class="n1">Travel Addendum</div><div class="n2">p.1 · revised allowance, 2025</div></div><span class="score">0.66</span><span style="color:var(--accent)">&#8599;</span></div>
+      <div class="row"><span class="ficon"></span><div class="name"><div class="n1">Travel Policy v1</div><div class="n2">p.1 · original allowance, 2021</div></div><span class="score">0.65</span><span style="color:var(--accent)">&#8599;</span></div>
+      <div class="row"><span class="ficon"></span><div class="name"><div class="n1">Employee handbook</div><div class="n2">p.14 · expenses overview</div></div><span class="score">0.41</span><span style="color:var(--accent)">&#8599;</span></div>
+    </div>
+  </div>
+</body>
+</html>

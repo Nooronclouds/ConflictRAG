@@ -27,55 +27,55 @@ Base URL (local): `http://localhost:8000`
 `status` = `"ready"` | `"processing"` | `"failed"` → drives the file-list badge color.
 
 ---
+## 2. Ask a question — POST /ask  (updated: 4 types + related_sources)
 
-## 2. Ask a question
-`POST /ask`
+Request: `{ "question": "...", "attachment_id": null }`
 
-Request:
-```json
-{ "question": "How many leave days do part-time staff get?", "attachment_id": null }
-```
-`attachment_id` is `null` for a normal knowledge-base question; it holds an uploaded
-document's id for the "ask about this document + KB" flow.
-
-The response ALWAYS has a `type` field — one of three shapes:
+Every response has a `type` AND a `related_sources` array (the reading list).
 
 ### 2a. Confident
 ```json
 {
   "type": "confident",
-  "answer": "Part-time staff receive 12 days of annual leave, prorated by hours.",
-  "citations": [
-    { "doc": "Leave policy v1", "page": 3, "snippet": "Part-time employees accrue 12 days…" }
-  ]
+  "answer": "...",
+  "citations": [ { "doc": "...", "page": 3, "snippet": "..." } ],
+  "related_sources": [ { "doc": "...", "page": 1, "excerpt": "...", "relevance": 0.66 } ]
 }
 ```
 
-### 2b. Conflict
+### 2b. Resolved  (NEW — a conflict that was a revision)
+```json
+{
+  "type": "resolved",
+  "conflict_kind": "temporal",
+  "answer": "The current travel allowance is ₹250/day, per the 2025 addendum.",
+  "governing":  { "doc": "Travel Addendum",  "page": 1, "excerpt": "...revised to ₹250...2025" },
+  "superseded": { "doc": "Travel Policy v1", "page": 1, "excerpt": "...₹500...2021" },
+  "note": "This supersedes an earlier value from Travel Policy v1.",
+  "related_sources": [ ... ]
+}
+```
+
+### 2c. Conflict  (genuine — halt and ask)
 ```json
 {
   "type": "conflict",
   "conflict_kind": "factual",
-  "question_summary": "Daily travel allowance",
-  "sources": [
-    { "value": "₹500 / day", "doc": "Travel policy v1", "date": "2021", "page": 4 },
-    { "value": "₹250 / day", "doc": "Expense addendum", "date": "2025", "page": 2 }
-  ],
-  "suggestion": "The 2025 addendum is newer — likely governing."
+  "question_summary": "...",
+  "sources": [ { "doc": "...", "page": 4, "excerpt": "..." }, { "doc": "...", "page": 2, "excerpt": "..." } ],
+  "suggestion": "These sources disagree — please review which one applies.",
+  "related_sources": [ ... ]
 }
 ```
-`conflict_kind` = `"factual"` | `"temporal"` | `"contradictory"`.
 
-### 2c. Not found
+### 2d. Not found
 ```json
-{
-  "type": "not_found",
-  "message": "None of the documents cover this. Add a source and I'll answer from it."
-}
+{ "type": "not_found", "message": "..." }
 ```
 
----
-
+## related_sources (shared component)
+Each item: `{ "doc": "...", "page": 1, "excerpt": "...", "relevance": 0.66 }`.
+Render as a "Related in your knowledge base" reading list under every answer, each row openable.
 ## 3. Upload a document
 `POST /ingest` (multipart file upload)
 
