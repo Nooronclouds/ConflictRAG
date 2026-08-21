@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>ConflictRAG — Explorer wireframe</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..600&display=swap" rel="stylesheet"/>
+<style>
+  :root{
+    --win-bg:#f3f3f3; --content:#ffffff; --nav:#f9f9f9;
+    --line:#e5e5e5; --line2:#ededed; --text:#1b1b1b; --muted:#616161; --hint:#909090;
+    --accent:#0067c0; --sel:#e8f1fb; --sel-line:#cfe6fb; --hover:#f2f2f2;
+    --ok:#0f7b0f; --ok-bg:#e6f4e6; --warn:#8a5a00; --warn-bg:#fbf3e2; --warn-line:#eddcb5;
+    --danger:#b42318; --danger-bg:#fdeceb; --danger-line:#f3cbc8;
+    --serif:'Fraunces',Georgia,serif;
+    --sans:'Segoe UI','Segoe UI Variable',system-ui,-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--sans);font-size:14px;color:var(--text);background:var(--win-bg);height:100vh;overflow:hidden}
+  svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+  .fill{fill:currentColor;stroke:none}
+
+  /* window frame */
+  .win{height:100vh;display:flex;flex-direction:column;background:linear-gradient(135deg,#e7edf5 0%,#f3f1ec 55%,#efe9e0 100%)}
+  .topchrome{backdrop-filter:blur(34px) saturate(1.8);-webkit-backdrop-filter:blur(34px) saturate(1.8);background:rgba(250,250,252,.68)}
+
+  /* toolbar row */
+  .toolbar{display:flex;align-items:center;gap:4px;padding:6px 10px;height:48px}
+  .tb-btn{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:6px;color:var(--text);cursor:default;font-size:13px}
+  .tb-btn:hover{background:var(--hover)}
+  .tb-ico{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:6px;color:var(--muted);cursor:default}
+  .tb-ico:hover{background:var(--hover)}
+  .sep{width:1px;height:20px;background:var(--line);margin:0 4px}
+  .grow{flex:1}
+  .primary{color:var(--accent)}
+
+  /* address + search row */
+  .addr-row{display:flex;align-items:center;gap:10px;padding:0 12px 8px}
+  .crumb{flex:1;display:flex;align-items:center;gap:6px;height:34px;background:var(--content);border:1px solid var(--line);border-radius:6px;padding:0 12px;font-size:13px;color:var(--muted)}
+  .crumb .cur{color:var(--text)}
+  .search{width:280px;display:flex;align-items:center;gap:8px;height:34px;background:var(--content);border:1px solid var(--line);border-radius:6px;padding:0 10px;color:var(--hint);font-size:13px}
+
+  /* main 3-pane */
+  .body{flex:1;display:flex;background:transparent;border-top:1px solid var(--line);min-height:0}
+
+  /* left nav (glass) */
+  .nav{width:220px;background:rgba(249,249,251,.5);backdrop-filter:blur(34px) saturate(1.8);-webkit-backdrop-filter:blur(34px) saturate(1.8);border-right:1px solid var(--line);padding:8px 6px;overflow-y:auto;flex-shrink:0;font-size:13px}
+  .nav-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:5px;color:var(--text);cursor:default}
+  .nav-item:hover{background:var(--hover)}
+  .nav-item.sub{padding-left:26px;color:#3a3a3a}
+  .nav-item.sel{background:var(--sel);box-shadow:inset 2px 0 0 var(--accent)}
+  .nav-item.hl{background:var(--warn-bg);box-shadow:inset 2px 0 0 var(--warn)}
+  .chev{color:var(--hint)}
+  .fold{color:#eab000}
+  .nav-sec{font-size:11px;color:var(--hint);padding:10px 8px 4px;text-transform:none}
+
+  /* middle */
+  .mid{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--content)}
+  .mid-head{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid var(--line2);color:var(--muted);font-size:12px}
+  .mid-head .lbl{font-weight:600;color:var(--text);font-size:13px}
+  .cols{display:grid;grid-template-columns:1fr 130px 120px 70px 90px;gap:0;padding:6px 14px;border-bottom:1px solid var(--line2);color:var(--muted);font-size:12px}
+  .cols div{display:flex;align-items:center;gap:4px}
+  .rows{flex:1;overflow-y:auto}
+  .row{display:grid;grid-template-columns:1fr 130px 120px 70px 90px;gap:0;padding:7px 14px;align-items:center;font-size:13px;cursor:default}
+  .row:hover{background:var(--hover)}
+  .row.sel{background:var(--sel)}
+  .row .nm{display:flex;align-items:center;gap:10px;min-width:0}
+  .row .nm span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .row .c{color:var(--muted);font-size:12.5px}
+  .doc{color:#5b8def}
+  .badge{font-size:11px;padding:1px 8px;border-radius:10px;width:max-content}
+  .badge.ok{color:var(--ok);background:var(--ok-bg)}
+  .badge.warn{color:var(--warn);background:var(--warn-bg)}
+
+  /* empty state */
+  .empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;color:var(--muted);padding:40px}
+  .empty .big{width:64px;height:64px;color:#dcdcdc}
+  .empty h3{font-size:16px;color:var(--text);font-weight:600}
+  .drop{margin-top:8px;border:1.5px dashed var(--line);border-radius:10px;padding:22px 40px;color:var(--hint);font-size:13px;background:var(--nav)}
+  .btn-accent{display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;cursor:default;margin-top:6px}
+
+  /* right: librarian (details pane) */
+  .lib{width:400px;background:var(--nav);border-left:1px solid var(--line);display:flex;flex-direction:column;flex-shrink:0}
+  .lib-head{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line)}
+  .robot{width:26px;height:26px;border-radius:6px;background:#eef4fb;color:var(--accent);display:flex;align-items:center;justify-content:center}
+  .lib-title{font-family:var(--serif);font-size:15px}
+  .lib-sub{font-size:11px;color:var(--muted)}
+  .lib-tool{margin-left:auto;display:flex;gap:2px}
+  .lib-body{flex:1;overflow-y:auto;padding:14px}
+
+  .newchat{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--accent);padding:6px 8px;border:1px solid var(--sel-line);border-radius:6px;width:max-content;margin-bottom:14px}
+  .hsec{font-size:11px;color:var(--hint);margin:4px 2px 6px}
+  .hitem{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px;color:var(--text);font-size:13px}
+  .hitem:hover{background:var(--hover)}
+  .hitem .tm{margin-left:auto;font-size:11px;color:var(--hint)}
+  .idle-hint{color:var(--muted);font-size:13px;padding:14px 6px;text-align:center;line-height:1.6}
+
+  .q{display:flex;justify-content:flex-end;margin-bottom:14px}
+  .q span{background:var(--sel);color:#0a4b8c;padding:8px 12px;border-radius:12px;font-size:13px;max-width:85%}
+  .tag{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:12px;margin-bottom:10px}
+  .tag.ok{color:var(--ok);background:var(--ok-bg)}
+  .tag.warn{color:var(--warn);background:var(--warn-bg)}
+  .tag.bad{color:var(--danger);background:var(--danger-bg)}
+  .tag.info{color:var(--muted);background:#eee}
+  .answer{font-family:var(--serif);font-size:16px;line-height:1.6;margin-bottom:12px}
+  .hist{display:flex;align-items:center;gap:8px;border-left:2px solid var(--warn-line);padding:6px 0 6px 10px;font-size:12px;color:var(--muted);margin-bottom:14px}
+  .strike{text-decoration:line-through}
+  .srccard{border:1px solid var(--danger-line);border-left:3px solid var(--danger);border-radius:8px;padding:9px 12px;margin-bottom:8px}
+  .srccard .v{font-family:var(--serif);font-size:16px;font-weight:600}
+  .srccard .m{font-size:11px;color:var(--hint);margin-top:2px}
+  .note{font-size:12px;color:var(--muted);margin-bottom:12px}
+  .rl-t{font-size:11px;color:var(--hint);margin:6px 0 6px}
+  .rl{border:1px solid var(--line);border-radius:8px;background:var(--content);overflow:hidden}
+  .rl .r{display:flex;align-items:center;gap:9px;padding:8px 11px;font-size:12.5px}
+  .rl .r+.r{border-top:1px solid var(--line2)}
+  .rl .r .nm{flex:1}
+  .rl .r .sub2{font-size:11px;color:var(--hint)}
+  .rel{font-size:11px;color:var(--ok);background:var(--ok-bg);padding:1px 6px;border-radius:5px}
+  .cta{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--accent);border:1px solid var(--sel-line);border-radius:6px;padding:7px 12px;margin-top:6px}
+  .lib-input{padding:10px 12px;border-top:1px solid var(--line);display:flex;align-items:center;gap:8px;background:var(--nav)}
+  .askbox{flex:1;font-size:12.5px;color:var(--hint);background:var(--content);border:1px solid var(--line);border-radius:8px;padding:9px 11px}
+
+  /* status bar */
+  .status{height:26px;display:flex;align-items:center;gap:14px;padding:0 14px;font-size:12px;color:var(--muted);border-top:1px solid var(--line)}
+
+  /* preview switcher */
+  .preview{display:flex;align-items:center;gap:6px;padding:6px 10px;background:#eef1f4;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)}
+  .pv{padding:4px 10px;border:1px solid var(--line);border-radius:14px;background:#fff;color:var(--muted);cursor:pointer;font-size:12px}
+  .pv.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="ic-folder" viewBox="0 0 24 24"><path class="fill" d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z"/></symbol>
+  <symbol id="ic-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></symbol>
+  <symbol id="ic-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></symbol>
+  <symbol id="ic-up" viewBox="0 0 24 24"><path d="M12 19V6"/><path d="M6 12l6-6 6 6"/></symbol>
+  <symbol id="ic-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="ic-chevd" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="ic-back" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+  <symbol id="ic-new" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="ic-sort" viewBox="0 0 24 24"><path d="M4 7h13M4 12h9M4 17h5"/></symbol>
+  <symbol id="ic-view" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/></symbol>
+  <symbol id="ic-home" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/></symbol>
+  <symbol id="ic-robot" viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="11" rx="2"/><path d="M12 8V4M8 13h.01M16 13h.01"/></symbol>
+  <symbol id="ic-clip" viewBox="0 0 24 24"><path d="M21 11l-8.5 8.5a4 4 0 0 1-6-6L14 5.5a2.5 2.5 0 0 1 4 4l-8.5 8.5"/></symbol>
+  <symbol id="ic-send" viewBox="0 0 24 24"><path d="M12 19V6M6 12l6-6 6 6"/></symbol>
+  <symbol id="ic-hist" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 4v4h4M12 8v4l3 2"/></symbol>
+  <symbol id="ic-open" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-8 8"/><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/></symbol>
+</svg>
+
+<div class="win">
+
+  <!-- preview switcher (dev aid — not part of the app) -->
+  <div class="preview">
+    <span>Preview:</span>
+    <button class="pv" data-s="empty">First run</button>
+    <button class="pv on" data-s="browse">Browsing</button>
+    <button class="pv" data-s="confident">Confident</button>
+    <button class="pv" data-s="resolved">Resolved</button>
+    <button class="pv" data-s="conflict">Conflict</button>
+    <button class="pv" data-s="notfound">Not found</button>
+  </div>
+
+  <div class="topchrome">
+  <!-- toolbar -->
+  <div class="toolbar">
+    <div class="tb-ico"><svg class="i"><use href="#ic-back"/></svg></div>
+    <div class="tb-ico" style="transform:rotate(180deg)"><svg class="i"><use href="#ic-back"/></svg></div>
+    <div class="tb-ico"><svg class="i"><use href="#ic-up"/></svg></div>
+    <div class="sep"></div>
+    <div class="tb-btn primary"><svg class="i"><use href="#ic-up"/></svg> Upload</div>
+    <div class="tb-btn"><svg class="i"><use href="#ic-new"/></svg> New folder</div>
+    <div class="sep"></div>
+    <div class="tb-btn"><svg class="i"><use href="#ic-sort"/></svg> Sort <svg class="i" style="width:12px"><use href="#ic-chevd"/></svg></div>
+    <div class="tb-btn"><svg class="i"><use href="#ic-view"/></svg> View <svg class="i" style="width:12px"><use href="#ic-chevd"/></svg></div>
+    <div class="grow"></div>
+    <div class="tb-btn"><svg class="i"><use href="#ic-robot"/></svg> Librarian</div>
+  </div>
+
+  <!-- address + search -->
+  <div class="addr-row">
+    <div class="crumb">
+      <svg class="i" style="color:#eab000"><use href="#ic-folder" class="fill"/></svg>
+      Knowledge base <svg class="i" style="width:13px"><use href="#ic-chev"/></svg> <span class="cur">Policies</span>
+    </div>
+    <div class="search"><svg class="i"><use href="#ic-search"/></svg> Search knowledge base…</div>
+  </div>
+  </div>
+
+  <!-- 3-pane body -->
+  <div class="body">
+
+    <!-- LEFT NAV -->
+    <nav class="nav">
+      <div class="nav-item"><svg class="i"><use href="#ic-home"/></svg> Home</div>
+      <div class="nav-sec">This PC — Knowledge base</div>
+      <div class="nav-item"><svg class="i" style="width:12px"><use href="#ic-chevd"/></svg><svg class="i fold"><use href="#ic-folder"/></svg> Knowledge base</div>
+      <div class="nav-item sub folder-item" id="nav-policies"><svg class="i fold"><use href="#ic-folder"/></svg> Policies</div>
+      <div class="nav-item sub folder-item"><svg class="i fold"><use href="#ic-folder"/></svg> Contracts</div>
+      <div class="nav-item sub folder-item"><svg class="i fold"><use href="#ic-folder"/></svg> Reports</div>
+      <div class="nav-item sub folder-item"><svg class="i fold"><use href="#ic-folder"/></svg> Compliance</div>
+      <div class="nav-item sub hidden" id="nofolders" style="color:var(--hint)">No folders yet</div>
+      <div class="nav-sec">Library</div>
+      <div class="nav-item"><svg class="i"><use href="#ic-hist"/></svg> Recent files</div>
+      <div class="nav-item"><svg class="i"><use href="#ic-file"/></svg> Trash</div>
+    </nav>
+
+    <!-- MIDDLE (context-sensitive) -->
+    <section class="mid">
+      <div class="mid-head"><span class="lbl" id="mid-lbl">Policies</span><span id="mid-count">4 items</span></div>
+
+      <!-- EMPTY / first run -->
+      <div class="empty view" data-view="empty">
+        <svg class="i big"><use href="#ic-folder" class="fill"/></svg>
+        <h3>Your knowledge base is empty</h3>
+        <div>Add documents to begin — the Librarian answers only from what's here.</div>
+        <div class="drop">Drag files or a folder here</div>
+        <button class="btn-accent"><svg class="i"><use href="#ic-up"/></svg> Upload documents</button>
+      </div>
+
+      <!-- FILE LIST (browse + evidence share this) -->
+      <div class="view" data-view="list">
+        <div class="cols"><div>Name <svg class="i" style="width:12px"><use href="#ic-chevd"/></svg></div><div>Date modified</div><div>Type</div><div>Size</div><div>Status</div></div>
+        <div class="rows" id="rows"></div>
+      </div>
+    </section>
+
+    <!-- RIGHT: Librarian -->
+    <aside class="lib">
+      <div class="lib-head">
+        <span class="robot"><svg class="i"><use href="#ic-robot"/></svg></span>
+        <div><div class="lib-title">Librarian</div><div class="lib-sub">Conflict-aware · answers only from your KB</div></div>
+        <div class="lib-tool"><span class="tb-ico"><svg class="i"><use href="#ic-hist"/></svg></span><span class="tb-ico"><svg class="i"><use href="#ic-new"/></svg></span></div>
+      </div>
+
+      <div class="lib-body">
+        <!-- IDLE (browse/empty): show new chat + history -->
+        <div class="view" data-view="idle">
+          <div class="newchat"><svg class="i" style="width:14px"><use href="#ic-new"/></svg> New chat</div>
+          <div class="hsec">Recent chats</div>
+          <div class="hitem"><svg class="i" style="width:14px;color:var(--hint)"><use href="#ic-hist"/></svg> Leave &amp; probation policy <span class="tm">Today</span></div>
+          <div class="hitem"><svg class="i" style="width:14px;color:var(--hint)"><use href="#ic-hist"/></svg> Travel allowance change <span class="tm">2 days ago</span></div>
+          <div class="hitem"><svg class="i" style="width:14px;color:var(--hint)"><use href="#ic-hist"/></svg> Q3 budget dispute <span class="tm">5 days ago</span></div>
+          <div class="idle-hint">Ask a question, or open a folder to browse.<br/>Answers cite the documents they came from.</div>
+        </div>
+
+        <!-- ANSWER states -->
+        <div class="view" data-view="answer">
+          <div class="q"><span id="q">How many days of leave do part-time staff get?</span></div>
+
+          <div class="ans" data-ans="confident">
+            <div class="tag ok"><svg class="i" style="width:13px"><use href="#ic-robot"/></svg> Answer</div>
+            <div class="answer">Part-time staff receive 12 days of annual leave, prorated by hours worked.</div>
+          </div>
+
+          <div class="ans hidden" data-ans="resolved">
+            <div class="tag warn">Resolved · revision</div>
+            <div class="answer">The current travel allowance is <b>₹250 / day</b>, per the 2025 addendum.</div>
+            <div class="hist">Supersedes <span class="strike">₹500 / day</span> · Travel policy v1 · 2021</div>
+          </div>
+
+          <div class="ans hidden" data-ans="conflict">
+            <div class="tag bad">Sources disagree · factual conflict</div>
+            <div class="note">Two documents give different figures and there's no revision to resolve it. Which applies?</div>
+            <div class="srccard"><div class="v">200 people</div><div class="m">Facilities A · p.1</div></div>
+            <div class="srccard"><div class="v">350 people</div><div class="m">Facilities B · p.1</div></div>
+          </div>
+
+          <div class="ans hidden" data-ans="notfound">
+            <div class="tag info">Not in the knowledge base</div>
+            <div class="answer">None of the documents cover this. I won't guess — add a source and I'll answer from it.</div>
+            <span class="cta"><svg class="i" style="width:14px"><use href="#ic-up"/></svg> Add a source</span>
+          </div>
+
+          <div class="rl-t" id="rl-t">Related in your knowledge base</div>
+          <div class="rl" id="rl"></div>
+        </div>
+      </div>
+
+      <div class="lib-input">
+        <span style="color:var(--hint)"><svg class="i"><use href="#ic-clip"/></svg></span>
+        <span class="askbox">Ask about your knowledge base…</span>
+        <span class="primary"><svg class="i"><use href="#ic-send"/></svg></span>
+      </div>
+    </aside>
+  </div>
+
+  <div class="status"><span id="st-items">4 items</span><span id="st-note"></span></div>
+</div>
+
+<script>
+  const FILES = {
+    browse: {label:"Policies", note:"", tree:"sel", rows:[
+      ["Leave policy v1.pdf","12-08-2026 10:04","PDF Document","2.4 MB","ready"],
+      ["Travel policy v1.pdf","03-01-2021 09:20","PDF Document","1.8 MB","ready"],
+      ["Travel addendum 2025.pdf","14-08-2026 14:41","PDF Document","0.9 MB","ready"],
+      ["Expenses Q3.pdf","15-08-2026 16:12","PDF Document","1.1 MB","processing"],
+      ["Remote work rules.pdf","16-08-2026 11:30","PDF Document","0.6 MB","ready"],
+    ]},
+    confident: {label:"Evidence for your question", note:"sources highlighted in Policies", tree:"hl", q:"How many days of leave do part-time staff get?", rows:[
+      ["Leave policy v1.pdf","12-08-2026 10:04","PDF Document","2.4 MB","ready"],
+      ["Employee handbook.pdf","01-06-2026 12:00","PDF Document","3.2 MB","ready"],
+    ], rl:[["Leave policy v1","p.3 · accrual table","0.98"],["Employee handbook","p.14 · benefits","0.41"]]},
+    resolved: {label:"Evidence for your question", note:"sources highlighted in Policies", tree:"hl", q:"What is the daily travel allowance?", rows:[
+      ["Travel addendum 2025.pdf","14-08-2026 14:41","PDF Document","0.9 MB","ready"],
+      ["Travel policy v1.pdf","03-01-2021 09:20","PDF Document","1.8 MB","ready"],
+    ], rl:[["Travel addendum 2025","p.1 · revised allowance","0.66"],["Travel policy v1","p.1 · original, 2021","0.65"]]},
+    conflict: {label:"Evidence for your question", note:"conflicting sources", tree:"hl", q:"What is the office seating capacity?", rows:[
+      ["Facilities A.pdf","02-02-2026 09:00","PDF Document","0.4 MB","ready"],
+      ["Facilities B.pdf","09-09-2026 09:00","PDF Document","0.5 MB","ready"],
+    ], rl:[["Facilities A","p.1 · seating capacity","0.80"],["Facilities B","p.1 · seating capacity","0.79"]]},
+    notfound: {label:"No matching sources", note:"", tree:"sel", q:"What is the penalty for late tax filing in 2026?", rows:[], rl:[]},
+  };
+
+  const midLbl = document.getElementById('mid-lbl'), midCount = document.getElementById('mid-count');
+  const rows = document.getElementById('rows'), rl = document.getElementById('rl'), rlT = document.getElementById('rl-t');
+  const qEl = document.getElementById('q'), stItems = document.getElementById('st-items'), stNote = document.getElementById('st-note');
+  const navPol = document.getElementById('nav-policies');
+
+  function show(views){ document.querySelectorAll('.mid .view').forEach(v=>v.classList.toggle('hidden', !views.mid.includes(v.dataset.view)));
+    document.querySelectorAll('.lib .view').forEach(v=>v.classList.toggle('hidden', v.dataset.view!==views.lib)); }
+
+  function renderRows(list){ rows.innerHTML = list.map(r=>`<div class="row">
+      <div class="nm"><svg class="i doc"><use href="#ic-file"/></svg><span>${r[0]}</span></div>
+      <div class="c">${r[1]}</div><div class="c">${r[2]}</div><div class="c">${r[3]}</div>
+      <div><span class="badge ${r[4]==='ready'?'ok':'warn'}">${r[4]}</span></div></div>`).join(''); }
+
+  function setState(s){
+    document.querySelectorAll('.pv').forEach(b=>b.classList.toggle('on', b.dataset.s===s));
+    navPol.classList.remove('sel','hl');
+    document.querySelectorAll('.folder-item').forEach(f=>f.classList.remove('hidden'));
+    document.getElementById('nofolders').classList.add('hidden');
+
+    if(s==='empty'){ show({mid:['empty'], lib:'idle'}); midLbl.textContent='Knowledge base'; midCount.textContent='0 items'; stItems.textContent='0 items'; stNote.textContent='';
+      document.querySelectorAll('.folder-item').forEach(f=>f.classList.add('hidden'));
+      document.getElementById('nofolders').classList.remove('hidden'); return; }
+
+    if(s==='browse'){ const d=FILES.browse; show({mid:['list'], lib:'idle'}); midLbl.textContent=d.label; midCount.textContent=d.rows.length+' items'; renderRows(d.rows); navPol.classList.add('sel'); stItems.textContent=d.rows.length+' items'; stNote.textContent=''; return; }
+
+    const d=FILES[s];
+    show({mid:['list'], lib:'answer'}); midLbl.textContent=d.label; midCount.textContent=d.rows.length+' items'; renderRows(d.rows);
+    navPol.classList.add(d.tree==='hl'?'hl':'sel');
+    qEl.textContent=d.q;
+    document.querySelectorAll('.ans').forEach(a=>a.classList.toggle('hidden', a.dataset.ans!==s));
+    if(d.rl && d.rl.length){ rlT.classList.remove('hidden'); rl.classList.remove('hidden');
+      rl.innerHTML=d.rl.map(x=>`<div class="r"><svg class="i doc" style="width:15px"><use href="#ic-file"/></svg><span class="nm">${x[0]}<div class="sub2">${x[1]}</div></span><span class="rel">${x[2]}</span><svg class="i" style="width:14px;color:var(--accent)"><use href="#ic-open"/></svg></div>`).join(''); }
+    else { rlT.classList.add('hidden'); rl.classList.add('hidden'); }
+    stItems.textContent=d.rows.length+' items'; stNote.textContent=d.note;
+  }
+
+  document.querySelectorAll('.pv').forEach(b=>b.addEventListener('click',()=>setState(b.dataset.s)));
+  setState('browse');
+</script>
+</body>
+</html>
