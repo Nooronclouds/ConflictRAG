@@ -10,10 +10,13 @@ export default function App() {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [allDocs, setAllDocs] = useState<Doc[]>([]);
+  const [trashDocs, setTrashDocs] = useState<Doc[]>([]);
   const [currentFolder, setCurrentFolder] = useState("");
   const [midView, setMidView] = useState<MidView>("folder");
-  const [answer, setAnswer] = useState<AskResponse | null>(null);
-  const [question, setQuestion] = useState("");
+  const [turns, setTurns] = useState<{ question: string; answer: AskResponse }[]>([]);
+  const [pending, setPending] = useState<string | null>(null);
+  const [convId, setConvId] = useState<string | null>(null);
+  const [scope, setScope] = useState<string | null>(null);   // ask about ONE document
   const [input, setInput] = useState("");
   const [search, setSearch] = useState("");
   const [highlight, setHighlight] = useState<string | null>(null);
@@ -23,39 +26,46 @@ export default function App() {
   const [uploading, setUploading] = useState<string | null>(null);
   const [viewDoc, setViewDoc] = useState<{ name: string; page?: number } | null>(null);
   const [docReturn, setDocReturn] = useState<MidView>("folder");
-  const [confirmDel, setConfirmDel] = useState<{ kind: "doc" | "folder"; id: string; label: string } | null>(null);
+  const [confirmDel, setConfirmDel] = useState<{ kind: "doc" | "folder" | "chat" | "purge"; id: string; label: string } | null>(null);
 
   async function refresh() {
     setFolders(await api.listFolders());
     setConversations(await api.listConversations());
     setAllDocs(await api.listDocuments(""));
+    setTrashDocs(await api.listTrash());
   }
   useEffect(() => { refresh(); }, []);
 
   function openFolder(id: string) {
-    setCurrentFolder(id); setMidView("folder"); setAnswer(null); setHighlight(null); setSearch("");
+    setCurrentFolder(id); setMidView("folder"); setHighlight(null); setSearch(""); setScope(null);
   }
-  function openView(v: MidView) { setMidView(v); setAnswer(null); setHighlight(null); }
+  function openView(v: MidView) { setMidView(v); setHighlight(null); setScope(null); }
 
-  function onSearch(q: string) { setSearch(q); setMidView(q ? "search" : "folder"); setAnswer(null); }
+  function onSearch(q: string) { setSearch(q); setMidView(q ? "search" : "folder"); setScope(null); }
 
   async function runAsk(text: string) {
     if (!text.trim() || busy) return;
     setBusy(true);
-    setQuestion(text); setInput(""); setMidView("answer"); setAnswer(null);
+    setInput(""); setPending(text);
+    // keep the PDF open if the question is scoped to it; otherwise show evidence
+    setMidView((v) => (v === "doc" ? "doc" : "answer"));
     try {
-      const res = await api.ask(text);
-      setAnswer(res);
+      const res = await api.ask(text, { scope, conversationId: convId });
+      setConvId(res.conversation_id);
+      setTurns((t) => [...t, { question: text, answer: res }]);
       setHighlight(res.evidence?.[0]?.folder ?? null);
       setConversations(await api.listConversations());
     } catch {
-      setAnswer({ type: "not_found", message: "Couldn't reach the server — is the backend running on :8000?", related_sources: [], evidence: [] });
+      setTurns((t) => [...t, { question: text, answer: { type: "not_found", message: "Couldn't reach the server — is the backend running on :8000?", related_sources: [], evidence: [] } }]);
     } finally {
-      setBusy(false);
+      setPending(null); setBusy(false);
     }
   }
 
-  function newChat() { setAnswer(null); setMidView("folder"); setHighlight(null); }
+  function newChat() {
+    setTurns([]); setPending(null); setConvId(null); setScope(null);
+    setMidView("folder"); setHighlight(null);
+  }
 
   const fileRef = useRef<HTMLInputElement>(null);
   async function handleUpload(e: ChangeEvent<HTMLInputElement>) {
@@ -74,18 +84,33 @@ export default function App() {
   }
 
   // open a document IN THE MIDDLE PANE (remember where to go back to)
+  // and scope the Librarian to it so follow-up questions are about THIS doc
   function openViewer(name: string, page?: number) {
     setDocReturn(midView === "doc" ? docReturn : midView);
     setViewDoc({ name, page });
     setMidView("doc");
+    setScope(name);
   }
-  function closeViewer() { setViewDoc(null); setMidView(docReturn); }
+  function closeViewer() { setViewDoc(null); setScope(null); setMidView(docReturn); }
 
   async function doDelete() {
     if (!confirmDel) return;
-    if (confirmDel.kind === "doc") await api.deleteDocument(confirmDel.id);
-    else { await api.deleteFolder(confirmDel.id); if (currentFolder === confirmDel.id) openFolder(""); }
+    const { kind, id } = confirmDel;
+    if (kind === "doc") await api.deleteDocument(id);            // soft → Trash
+    else if (kind === "purge") await api.purgeDocument(id);      // permanent
+    else if (kind === "chat") {
+      await api.deleteConversation(id);
+      if (convId === id) newChat();
+    } else {
+      await api.deleteFolder(id);
+      if (currentFolder === id) openFolder("");
+    }
     setConfirmDel(null);
+    await refresh();
+  }
+
+  async function restoreDoc(name: string) {
+    await api.restoreDocument(name);
     await refresh();
   }
 
@@ -94,24 +119,27 @@ export default function App() {
     setFolderModal(false); setFolderName("");
   }
 
-  // open a SAVED chat (loads its stored answer — does NOT re-run the pipeline)
+  // open a SAVED chat (loads ALL its turns — does NOT re-run the pipeline)
   async function openConversation(id: string) {
     const conv = await api.getConversation(id);
-    if (!conv || !conv.response) return;
-    setQuestion(conv.question);
-    setAnswer(conv.response);
+    if (!conv || !conv.turns?.length) return;
+    setTurns(conv.turns.map((t) => ({ question: t.question, answer: t.response })));
+    setConvId(id); setPending(null); setScope(null);
     setMidView("answer");
-    setHighlight(conv.response.evidence?.[0]?.folder ?? null);
+    const last = conv.turns[conv.turns.length - 1].response;
+    setHighlight(last.evidence?.[0]?.folder ?? null);
   }
 
   // ---- derive the middle pane from the current view ----
   const inAnswer = midView === "answer";
+  const inChat = turns.length > 0 || pending !== null;   // right pane shows the thread
+  const lastAnswer = turns.length ? turns[turns.length - 1].answer : null;
   let midDocs: Doc[] = [];
   let midLabel = "Knowledge base";
   let emptyMsg = "";
-  if (midView === "answer") { midDocs = answer?.evidence ?? []; midLabel = "Evidence for your question"; emptyMsg = "No source documents."; }
+  if (midView === "answer") { midDocs = lastAnswer?.evidence ?? []; midLabel = "Evidence for your question"; emptyMsg = "No source documents."; }
   else if (midView === "recent") { midDocs = allDocs; midLabel = "Recent files"; emptyMsg = "No files yet."; }
-  else if (midView === "trash") { midDocs = []; midLabel = "Trash"; emptyMsg = "Trash is empty."; }
+  else if (midView === "trash") { midDocs = trashDocs; midLabel = "Trash"; emptyMsg = "Trash is empty."; }
   else if (midView === "search") {
     const q = search.toLowerCase();
     midDocs = allDocs.filter((d) => d.name.toLowerCase().includes(q));
@@ -244,10 +272,22 @@ export default function App() {
                     <div className="c">{d.date}</div><div className="c">{d.type}</div><div className="c">{d.size}</div>
                     <div className="statuscell">
                       <span className={`badge ${d.status === "ready" ? "ok" : "warn"}`}>{d.status}</span>
-                      <button className="row-del" title="Delete document"
-                        onClick={(e) => { e.stopPropagation(); setConfirmDel({ kind: "doc", id: d.name, label: d.name }); }}>
-                        <Icon name="trash" size={14} />
-                      </button>
+                      {midView === "trash" ? (
+                        <span className="row-actions">
+                          <button className="row-del" title="Restore" onClick={(e) => { e.stopPropagation(); restoreDoc(d.name); }}>
+                            <Icon name="refresh" size={14} />
+                          </button>
+                          <button className="row-del danger" title="Delete permanently"
+                            onClick={(e) => { e.stopPropagation(); setConfirmDel({ kind: "purge", id: d.name, label: d.name }); }}>
+                            <Icon name="trash" size={14} />
+                          </button>
+                        </span>
+                      ) : (
+                        <button className="row-del" title="Move to Trash"
+                          onClick={(e) => { e.stopPropagation(); setConfirmDel({ kind: "doc", id: d.name, label: d.name }); }}>
+                          <Icon name="trash" size={14} />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -269,32 +309,55 @@ export default function App() {
           </div>
 
           <div className="lib-body">
-            {!inAnswer ? (
+            {!inChat ? (
               <>
                 <button className="newchat" onClick={newChat}><Icon name="new" size={14} /> New chat</button>
                 <div className="hsec">Recent chats</div>
                 {conversations.length === 0 && <div className="idle-hint" style={{ textAlign: "left" }}>No chats yet.</div>}
                 {conversations.map((c) => (
                   <div className="hitem" key={c.id} onClick={() => openConversation(c.id)}>
-                    <Icon name="hist" size={14} color="var(--hint)" /> {c.title} <span className="tm">{c.when}</span>
+                    <Icon name="hist" size={14} color="var(--hint)" />
+                    <span className="htitle">{c.title}</span>
+                    <span className="tm">{c.when}</span>
+                    <button className="row-del" title="Delete chat"
+                      onClick={(e) => { e.stopPropagation(); setConfirmDel({ kind: "chat", id: c.id, label: c.title }); }}>
+                      <Icon name="trash" size={13} />
+                    </button>
                   </div>
                 ))}
                 <div className="idle-hint">Ask a question, or open a folder to browse.<br />Answers cite the documents they came from.</div>
               </>
             ) : (
               <>
-                <div className="q"><span>{question}</span></div>
-                {busy && !answer ? <div className="idle-hint">Thinking…</div> : answer && <AnswerCard res={answer} onOpenDoc={openViewer} />}
+                {turns.map((t, i) => (
+                  <div key={i} className="turn">
+                    <div className="q"><span>{t.question}</span></div>
+                    <AnswerCard res={t.answer} onOpenDoc={openViewer} />
+                  </div>
+                ))}
+                {pending !== null && (
+                  <div className="turn">
+                    <div className="q"><span>{pending}</span></div>
+                    <div className="idle-hint">Thinking…</div>
+                  </div>
+                )}
               </>
             )}
           </div>
 
+          {scope && (
+            <div className="scope-chip">
+              <Icon name="file" size={13} className="doc" />
+              <span>Asking about <b>{scope}</b></span>
+              <button className="icon-btn" title="Ask the whole knowledge base instead" onClick={() => setScope(null)}><Icon name="close" size={13} /></button>
+            </div>
+          )}
           <form className="lib-input" onSubmit={(e) => { e.preventDefault(); runAsk(input); }}>
             <button type="button" className="icon-btn" title="Attach a document" onClick={() => fileRef.current?.click()}><Icon name="clip" /></button>
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask about your knowledge base…"
+              placeholder={scope ? `Ask about ${scope}…` : "Ask about your knowledge base…"}
             />
             <button type="submit" className="icon-btn primary"><Icon name="send" /></button>
           </form>
@@ -304,15 +367,26 @@ export default function App() {
       {confirmDel && (
         <div className="modal-overlay" onClick={() => setConfirmDel(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-title">Delete {confirmDel.kind === "folder" ? "folder" : "document"}?</div>
+            <div className="modal-title">
+              {confirmDel.kind === "folder" ? "Delete folder?"
+                : confirmDel.kind === "chat" ? "Delete chat?"
+                : confirmDel.kind === "purge" ? "Delete permanently?"
+                : "Move to Trash?"}
+            </div>
             <div className="note" style={{ marginBottom: 14 }}>
               {confirmDel.kind === "folder"
                 ? <>“{confirmDel.label}” will be removed. Any documents inside move back to the Knowledge base root.</>
-                : <>“{confirmDel.label}” will be permanently removed from your knowledge base — the Librarian will no longer use it.</>}
+                : confirmDel.kind === "chat"
+                ? <>“{confirmDel.label}” will be permanently deleted from your chat history.</>
+                : confirmDel.kind === "purge"
+                ? <>“{confirmDel.label}” will be <b>permanently</b> deleted — file and all its data. This can’t be undone.</>
+                : <>“{confirmDel.label}” moves to Trash. The Librarian stops using it, but you can restore it later.</>}
             </div>
             <div className="modal-actions">
               <button className="tb-btn" onClick={() => setConfirmDel(null)}>Cancel</button>
-              <button className="tb-btn danger" onClick={doDelete}><Icon name="trash" size={14} /> Delete</button>
+              <button className="tb-btn danger" onClick={doDelete}>
+                <Icon name="trash" size={14} /> {confirmDel.kind === "doc" ? "Move to Trash" : "Delete"}
+              </button>
             </div>
           </div>
         </div>

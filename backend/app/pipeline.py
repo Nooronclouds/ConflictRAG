@@ -8,6 +8,34 @@ from app.store import get_collection
 
 RELATED_K = 8
 MIN_RELEVANCE = 0.35   # below this, the query doesn't really match the KB → not_found
+REFUSAL_CEILING = 0.6  # trust an LLM refusal only when the match is this weak or weaker;
+                       # above it the content is clearly present, so keep the answer
+
+# The LLM is told to say it has "no source" when the context can't answer. Similarity
+# alone can't tell a real question (0.48) from junk (0.47), so we also trust that refusal.
+_REFUSAL_CUES = (
+    "don't have a source", "do not have a source", "no source for",
+    "cannot answer", "can't answer", "not have enough information",
+    "does not contain", "doesn't contain",
+    "no information about", "don't have any information", "do not have any information",
+    "don't have information", "no relevant information",
+)
+
+
+def _is_sentinel_refusal(answer: str) -> bool:
+    """The prompt asks the model to reply exactly NO_SOURCE when it has nothing."""
+    return answer.strip().upper().replace(".", "").startswith("NO_SOURCE")
+
+
+def _has_refusal_cue(answer: str) -> bool:
+    a = answer.lower()
+    return any(cue in a for cue in _REFUSAL_CUES)
+
+
+def _is_weak_refusal(answer: str) -> bool:
+    """Fallback for when the model ignores the sentinel: a SHORT reply that is
+    basically a refusal (not a real answer that merely hedges)."""
+    return len(answer.strip()) < 140 and _has_refusal_cue(answer)
 
 
 def _related_sources(hits):
@@ -19,30 +47,37 @@ def _related_sources(hits):
     return list(seen.values())
 
 
-def answer_question(question: str, mode: str = "conflictrag") -> dict:
+def answer_question(question: str, mode: str = "conflictrag", scope: str | None = None) -> dict:
     trace = []
-    
+
     if get_collection().count() == 0:
         return {"type": "not_found",
                 "message": "The knowledge base is empty. Add a source first.",
                 "trace": trace}
 
     t0 = time.perf_counter()
-    hits_all = retrieve(question, top_k=RELATED_K)
+    hits_all = retrieve(question, top_k=RELATED_K, source=scope)
     ret_dur = int((time.perf_counter() - t0) * 1000)
-    
+
+    scope_label = f" (scoped to {scope})" if scope else ""
     trace.append({
         "step": "retrieve",
-        "label": f"Retrieved {len(hits_all)} chunks from knowledge base",
+        "label": f"Retrieved {len(hits_all)} chunks from knowledge base{scope_label}",
         "duration_ms": ret_dur,
         "result": "success",
-        "details": {"query": question, "top_k": RELATED_K, "hits_count": len(hits_all), "best_score": hits_all[0]["score"] if hits_all else None}
+        "details": {"query": question, "top_k": RELATED_K, "scope": scope, "hits_count": len(hits_all), "best_score": hits_all[0]["score"] if hits_all else None}
     })
 
-    # Relevance gate: a greeting like "hi" still returns the nearest chunks, but
-    # they score low. If even the best hit is weak, the question isn't about the
-    # KB — don't force an answer (or a false conflict).
-    if not hits_all or hits_all[0]["score"] < MIN_RELEVANCE:
+    # Relevance gate — ONLY for whole-KB questions. A greeting like "hi" returns
+    # the nearest chunks but they score low, so we reject it. BUT when the user has
+    # explicitly scoped to one document, we trust that choice: summary-style
+    # questions ("what is this about?") don't match any single chunk and would be
+    # wrongly rejected. If the doc truly can't answer, the LLM refusal catches it.
+    if not hits_all:
+        return {"type": "not_found",
+                "message": "I couldn't find anything about that in your knowledge base.",
+                "trace": trace}
+    if not scope and hits_all[0]["score"] < MIN_RELEVANCE:
         return {"type": "not_found",
                 "message": "I couldn't find anything about that in your knowledge base.",
                 "trace": trace}
@@ -51,7 +86,9 @@ def answer_question(question: str, mode: str = "conflictrag") -> dict:
     # top_k, so weak/irrelevant chunks come back too — running conflict detection
     # over those invents false conflicts between unrelated documents. Everything
     # downstream (detect, related list, generation) uses this filtered set.
-    relevant = [h for h in hits_all if h["score"] >= MIN_RELEVANCE]
+    # When scoped to one doc, keep all its chunks (the user chose it); otherwise
+    # drop weak/irrelevant chunks so conflict detection isn't fooled by noise.
+    relevant = hits_all if scope else [h for h in hits_all if h["score"] >= MIN_RELEVANCE]
     hits = relevant[:settings.top_k]
     related = _related_sources(relevant)
 
@@ -144,6 +181,32 @@ def answer_question(question: str, mode: str = "conflictrag") -> dict:
     answer = generate_answer(question, hits, mode=mode)
     gen_dur = int((time.perf_counter() - t0) * 1000)
     
+    # Decide if the model actually answered. A clean NO_SOURCE sentinel is always a
+    # refusal. Otherwise, on a marginal match, a short refusal-shaped reply also
+    # counts (junk that slipped past the similarity bar). A real answer that merely
+    # hedges is kept.
+    best = hits_all[0]["score"] if hits_all else 0.0
+    if _is_sentinel_refusal(answer):
+        refused = True
+    elif scope:
+        # scoped: the user chose this doc, so keep real (possibly long) summaries;
+        # only a short refusal-shaped reply counts
+        refused = _is_weak_refusal(answer)
+    else:
+        # whole-KB, marginal match: any refusal-shaped hedge means it isn't really here
+        refused = best < REFUSAL_CEILING and _has_refusal_cue(answer)
+    if refused:
+        trace.append({
+            "step": "generate",
+            "label": "Model found no supporting source → not in KB",
+            "duration_ms": gen_dur,
+            "result": "no_answer",
+            "details": {"model": settings.ollama_model, "mode": mode, "refused": True}
+        })
+        msg = (f"I couldn't find anything about that in \"{scope}\"." if scope
+               else "I couldn't find anything about that in your knowledge base.")
+        return {"type": "not_found", "message": msg, "related_sources": [], "trace": trace}
+
     trace.append({
         "step": "generate",
         "label": "Generated answer",
@@ -151,7 +214,7 @@ def answer_question(question: str, mode: str = "conflictrag") -> dict:
         "result": "success",
         "details": {"model": settings.ollama_model, "mode": mode}
     })
-    
+
     citations = [{"doc": h["title"], "page": h["page"], "snippet": h["text"][:160]}
                  for h in hits]
     return {"type": "confident", "answer": answer,

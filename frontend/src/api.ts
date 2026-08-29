@@ -24,11 +24,19 @@ export async function listDocuments(folderId: string): Promise<Doc[]> {
 export async function listConversations(): Promise<Conversation[]> {
   return (await fetch(`${BASE}/conversations`)).json();
 }
-export async function ask(question: string): Promise<AskResponse> {
+export interface AskResult extends Record<string, unknown> { conversation_id: string; }
+export async function ask(
+  question: string,
+  opts: { scope?: string | null; conversationId?: string | null } = {}
+): Promise<AskResponse & { conversation_id: string }> {
   const r = await fetch(`${BASE}/ask`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question }),
+    body: JSON.stringify({
+      question,
+      attachment_id: opts.scope ?? null,        // scope retrieval to one document
+      conversation_id: opts.conversationId ?? null,  // continue an existing chat thread
+    }),
   });
   return r.json();
 }
@@ -50,7 +58,8 @@ export async function createFolder(name: string): Promise<Folder> {
   return r.json();
 }
 
-export async function getConversation(id: string): Promise<{ id: string; question: string; response: AskResponse } | null> {
+export interface Turn { question: string; response: AskResponse; }
+export async function getConversation(id: string): Promise<{ id: string; turns: Turn[] } | null> {
   return (await fetch(`${BASE}/conversations/${id}`)).json();
 }
 
@@ -60,9 +69,27 @@ export function fileUrl(name: string): string {
 }
 
 export async function deleteDocument(name: string): Promise<void> {
+  // soft delete → moves to Trash
   await fetch(`${BASE}/documents?name=${encodeURIComponent(name)}`, { method: "DELETE" });
+}
+
+export async function listTrash(): Promise<Doc[]> {
+  return (await fetch(`${BASE}/trash`)).json();
+}
+
+export async function restoreDocument(name: string): Promise<void> {
+  await fetch(`${BASE}/documents/restore?name=${encodeURIComponent(name)}`, { method: "POST" });
+}
+
+export async function purgeDocument(name: string): Promise<void> {
+  // permanent delete from Trash
+  await fetch(`${BASE}/documents/purge?name=${encodeURIComponent(name)}`, { method: "DELETE" });
 }
 
 export async function deleteFolder(id: string): Promise<void> {
   await fetch(`${BASE}/folders/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+export async function deleteConversation(id: string): Promise<void> {
+  await fetch(`${BASE}/conversations/${encodeURIComponent(id)}`, { method: "DELETE" });
 }

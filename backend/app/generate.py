@@ -7,8 +7,10 @@ BASELINE_PROMPT = (
 )
 CONFLICTRAG_PROMPT = (
     "You are a careful librarian. Answer ONLY using the provided context. "
-    "If the context does not contain the answer, say you don't have a source for it. "
-    "Be concise and factual, and mention which source you used."
+    "If the context genuinely contains nothing relevant to the question, reply with "
+    "exactly NO_SOURCE and nothing else. Otherwise answer directly and concisely — "
+    "for a broad question, summarise what the context does cover — and mention which "
+    "source you used. Do not add disclaimers about missing sources when you can answer."
 )
 
 
