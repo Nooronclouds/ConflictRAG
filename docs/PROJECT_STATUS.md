@@ -2,7 +2,7 @@
 
 > Give this file to any AI assistant (or teammate) to get fully up to speed on the project:
 > what it is, how it's built, what's measured, what's left, and how to help write the paper.
-> Last updated: 2026-08-20. Deadline: ~2026-08-26 (finishing ASAP).
+> Last updated: 2026-08-29. Deadline: ~2026-08-26 (finishing ASAP — past nominal deadline, wrapping up).
 
 ---
 
@@ -61,9 +61,22 @@ transformers/DeBERTa, Ollama (llama3.2:3b), React frontend. Dev GPU = RTX 3050 6
 - `config.py` settings; `store.py` ChromaDB + embeddings; `ingest.py` PDF + text ingest;
   `retrieve.py`; `generate.py` (Ollama, baseline/conflictrag prompt modes);
   `nli.py` (DeBERTa check_pair); `conflict.py` (detect_conflicts / classify_conflict / reconcile);
-  `pipeline.py` (`answer_question`, 4 types + related_sources, `mode` toggle);
-  `main.py` (FastAPI: `/ask`, `/ingest` async w/ in-memory status registry, `/documents`).
+  `pipeline.py` (`answer_question`, 4 types + related_sources, `mode` toggle, **relevance gate**);
+  `db.py` (**SQLite** — folders, documents, conversations, messages; hand-written, no seed data);
+  `main.py` (FastAPI — full endpoint list below).
 - Demos proven: "travel allowance" -> resolved (₹250 supersedes ₹500); "office capacity 200 vs 350" -> conflict halt.
+
+**API endpoints (`main.py`), all wired to the live React app:**
+- `GET /folders`, `POST /folders`, `DELETE /folders/{id}` (moves its docs back to root)
+- `GET /documents`, `GET /documents/view?name=` (serves the raw PDF), `DELETE /documents?name=` (removes chunks from Chroma **and** the metadata row)
+- `POST /ingest` (writes to BOTH Chroma via `ingest_pdf` AND SQLite via `db.add_document`)
+- `POST /ask` (stores the full response as JSON so a chat can be reopened without re-running)
+- `GET /conversations`, `GET /conversations/{cid}` (loads a saved chat)
+
+**Data model — two stores, on purpose:** ChromaDB holds the big data (vectors + chunk text); SQLite
+holds only small metadata (folder tree, doc list, chat history). SQLite is the right choice *because*
+the heavy data never lives in it — Postgres is the documented future path for multi-tenant scale, isolated
+to `db.py`/`store.py`.
 
 **Evaluation dataset (`dataset/eval_dataset.jsonl`, 795 rows):**
 - ConflictBank subset 300 (default-claim vs conflict-claim pairs, typed) + planted 95 + negatives 400.
@@ -71,8 +84,15 @@ transformers/DeBERTa, Ollama (llama3.2:3b), React frontend. Dev GPU = RTX 3050 6
 - Schema per row: `{original, conflicting, conflict_type, label, source, subtype}`.
 - Built by `dataset/merge_and_verify.py`.
 
-**Frontend (`frontend/mockups/`):** 4 static HTML mockups (KEPT as the design): not-found, resolved,
-conflict, confident. Scholarly "reading room" aesthetic, Fraunces serif for the Librarian voice.
+**Frontend (`frontend/`, React 18 + Vite + TypeScript) — BUILT and wired live to the backend:**
+- Windows-11 File-Explorer glass aesthetic (Fraunces serif for the Librarian voice). 3-pane layout:
+  left folder tree, context-sensitive middle pane, right Librarian chat.
+- `src/api.ts` is the single data layer (real `fetch` to `http://localhost:8000`).
+- All 4 response types render; chat history persists and reopens saved chats (no duplicate); New-folder
+  in-app modal; **click a file to preview the PDF; hover to delete a file or folder (with confirm);
+  upload shows a "Processing…" banner** while each PDF is read/chunked/embedded.
+- The 4 original static mockups were superseded; `frontend/mockups/conflictrag-ui.html` kept as the
+  reference wireframe. NOTE: the frontend is Chetan's contribution to push — it is git-excluded from Noor's repo.
 
 ## 6. Measured RESULTS (the paper's numbers)
 
@@ -89,28 +109,42 @@ conflict, confident. Scholarly "reading room" aesthetic, Fraunces serif for the 
   number/date/negation cue, so they misclassify. Documented as a limitation; a trained classifier is future work.
   (An LLM classifier via the 3B model was tried and did WORSE — dropped.)
 
+## 6a. Latest session changes (2026-08-29)
+
+- **Relevance gate** (`pipeline.py`, `MIN_RELEVANCE = 0.35`): a query whose best chunk scores below the
+  threshold returns `not_found` instead of forcing an answer/false conflict. Fixes "hi" -> fake conflict.
+- **View files**: `GET /documents/view?name=` serves the PDF; the FE opens it in an in-app viewer modal.
+- **Delete files/folders**: `DELETE /documents?name=` (Chroma + SQLite) and `DELETE /folders/{id}`; FE has
+  hover trash buttons + a confirm modal.
+- **Upload progress**: FE shows a per-file "Processing… reading, chunking & embedding" banner during ingest.
+- **Chat history fix**: `/ask` now stores the full response JSON; `GET /conversations/{cid}` reopens a saved
+  chat without re-running the pipeline (no more duplicate conversations).
+- All verified live in the browser against the running backend.
+
 ## 7. What is LEFT to build (by area, priority order)
 
 **Backend (Noor):**
 - [ ] **RAGAS evaluation** (Phase 5): faithfulness / answer-relevance / context-precision-recall,
-      baseline (mode="baseline") vs conflictrag, on the full answer pipeline. THIS is the remaining paper number.
-- [ ] **Data storage / folders**: replace the in-memory `DOCUMENTS` registry with a persistent store
-      (e.g. SQLite) so document status + a real folder structure survive restarts (the KB folder-explorer the FE wants).
+      baseline (mode="baseline") vs conflictrag, on the full answer pipeline. **THIS is the #1 remaining paper number.**
+- [x] ~~Persistent storage / folders~~ — DONE. `db.py` (SQLite): folders, documents, conversations, messages;
+      survives restarts; folder-explorer works. No seed data (starts empty, reflects only real user actions).
 - [ ] **Agent-trace emission**: have the pipeline record each step (retrieve -> detect -> classify -> reconcile ->
-      generate) and expose it in the `/ask` response so the frontend Trace UI can render it.
+      generate) and expose it in the `/ask` response so the frontend Trace UI can render it. (Not started.)
 - [ ] (stretch, "full CARL" per proposal) multi-hop retrieval; ReAct tool verification (web/calc/python); token streaming.
 - [ ] Docker packaging (Phase 6) for one-command self-hosting.
 - Backlog quality items (see `BACKLOG.md`): citations = used-not-retrieved; drop low-relevance related_sources;
-      sentence-level conflict detection; prune NLI pairs for speed.
+      sentence-level conflict detection; prune NLI pairs for speed; tune the relevance gate threshold (currently 0.35).
 
-**Frontend (Chetan):**
-- [ ] Turn the 4 static mockups into a real **React (Vite + TS)** app, components per screen.
-- [ ] Wire to the API (`docs/api-contract.md`) through ONE `src/api.ts` module (mock now, real fetch later).
-- [ ] Render all 4 response types from `/ask` + the `related_sources` reading list.
-- [ ] Functional **upload** + poll `/documents` until status `ready`.
-- [ ] **Agent-Trace UI** (NEW — not in the mockups): collapsible panel showing the reasoning steps.
-- [ ] Attach / paperclip flow ("ask about this document + KB").
-- [ ] (optional) make the KB a Windows-folder-explorer look.
+**Frontend (Chetan's contribution — Noor built a working version as a safety net):**
+- [x] ~~Real React (Vite + TS) app~~ — DONE and wired to the live API through `src/api.ts`.
+- [x] ~~Render all 4 response types + related_sources~~ — DONE.
+- [x] ~~Functional upload~~ — DONE, with a live "Processing…" banner per file.
+- [x] ~~Windows folder-explorer look~~ — DONE (this became the primary design).
+- [x] ~~View / delete files + folders~~ — DONE (PDF preview modal; hover-to-delete with confirm).
+- [ ] **Agent-Trace UI** (NEW — not in the mockups): collapsible panel showing the reasoning steps
+      (blocked on the backend agent-trace emission above).
+- [ ] Attach / paperclip flow that scopes a question to "this document + KB" (button exists; opens file picker; not yet scoped).
+- [ ] Polish: Sort / View toolbar buttons are still decorative; a Trash view that actually restores/purges.
 
 **Paper (Arfa + Noor):** related work (cite scite/Consensus/NotebookLM + the 26 refs in the proposal),
 method (CARL), results (Section 6 numbers), honest limitations (classification on ConflictBank), future work.
@@ -135,7 +169,16 @@ uvicorn app.main:app --reload --port 8000     # Swagger at http://localhost:8000
 # evaluation
 python run_eval.py            # detection precision/recall
 python run_classify_eval.py   # classification accuracy
+
+# frontend (Chetan's; runs on :5173, calls the backend on :8000)
+cd conflictRAG/frontend
+npm install
+npm run dev                   # open http://localhost:5173
 ```
+
+> **Windows/Vite gotcha:** if the app renders blank with a `ReferenceError` for a symbol that no longer
+> exists in the source, Vite's file watcher missed a save and is serving a stale transform. Hard-refresh
+> (Ctrl+Shift+R); if still broken, restart `npm run dev`. This is not a code bug.
 
 ## 10. Key facts to not get wrong
 

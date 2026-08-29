@@ -1,0 +1,1995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>⚡ EcoCharge Pro | AI-Powered EV Charging Network</title>
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js">
+    </script>
+    <style>
+        body {
+            background: #0a120e;
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+        .glass-card {
+            background: rgba(18, 28, 20, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+            transition: all 0.2s ease;
+        }
+        .glass-card:hover {
+            border-color: #4ade80;
+            box-shadow: 0 8px 25px rgba(74, 222, 128, 0.2);
+            transform: translateY(-2px);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #22c55e, #15803d);
+            transition: 0.2s;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px #15803d;
+        }
+        .ev-green {
+            color: #4ade80;
+        }
+        .map-container {
+            height: 380px;
+            border-radius: 1.5rem;
+            overflow: hidden;
+            border: 1px solid #2d5a2e;
+        }
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1a2a1a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4ade80;
+            border-radius: 10px;
+        }
+        .animate-glow {
+            animation: glow 2s infinite alternate;
+        }
+        @keyframes glow {
+            from {
+                text-shadow: 0 0 2px #4ade80;
+            }
+            to {
+                text-shadow: 0 0 10px #4ade80;
+            }
+        }
+        .voice-btn {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            z-index: 1000;
+            background: #22c55e;
+            border-radius: 50%;
+            width: 55px;
+            height: 55px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.5);
+            transition: 0.2s;
+        }
+        .voice-btn:hover {
+            transform: scale(1.05);
+            background: #15803d;
+        }
+        .listening {
+            animation: pulseMic 1.5s infinite;
+        }
+        @keyframes pulseMic {
+            0% {
+                box-shadow: 0 0 0 0 #4ade80;
+            }
+            100% {
+                box-shadow: 0 0 0 15px transparent;
+            }
+        }
+        #qrCodeDisplay canvas,
+        #qrCodeDisplay img {
+            margin: 0 auto;
+            display: block;
+            background: white;
+            padding: 8px;
+            border-radius: 12px;
+        }
+        .lang-btn {
+            background: transparent;
+            border: 1px solid #4ade80;
+            color: #4ade80;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .lang-btn:hover {
+            background: #4ade80;
+            color: #0a120e;
+        }
+        .lang-btn.active {
+            background: #4ade80;
+            color: #0a120e;
+        }
+        .feedback-rating {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            font-size: 2rem;
+            cursor: pointer;
+        }
+        .feedback-rating span {
+            transition: 0.2s;
+        }
+        .feedback-rating span:hover,
+        .feedback-rating span.active {
+            transform: scale(1.2);
+            color: #fbbf24;
+        }
+        .toast {
+            position: fixed;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1a2a1a;
+            border: 1px solid #4ade80;
+            padding: 12px 24px;
+            border-radius: 12px;
+            z-index: 9999;
+            backdrop-filter: blur(8px);
+            font-weight: 500;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+            display: none;
+            max-width: 90%;
+            text-align: center;
+        }
+        .toast.show {
+            display: block;
+            animation: fadeUp 0.3s ease;
+        }
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+        .booking-download-card {
+            background: rgba(34, 197, 94, 0.08);
+            border: 1px solid #4ade80;
+            border-radius: 16px;
+            padding: 16px;
+            margin-top: 12px;
+        }
+        /* Kannada font support */
+        .lang-kn {
+            font-family: 'Noto Sans Kannada', 'Kannada MN', 'Kannada Sangam MN', sans-serif;
+        }
+    </style>
+</head>
+<body class="text-white">
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <nav class="bg-black/80 backdrop-blur-lg border-b border-green-800/50 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-3 flex-wrap gap-2">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-charging-station text-3xl text-green-400 animate-pulse"></i>
+                    <span class="text-2xl font-bold bg-gradient-to-r from-green-300 to-emerald-500 bg-clip-text text-transparent" data-i18n="appName">EcoCharge Pro</span>
+                </div>
+                <div class="hidden md:flex space-x-5" id="nav-links">
+                    <a href="#" data-page="home" class="nav-link text-gray-300 hover:text-green-400 transition" data-i18n="navHome">🏠 Home</a>
+                    <a href="#" data-page="finder" class="nav-link text-gray-300 hover:text-green-400 transition" data-i18n="navFinder">📍 Station Finder</a>
+                    <a href="#" data-page="booking" class="nav-link text-gray-300 hover:text-green-400 transition" data-i18n="navBooking">📅 Slot Booking</a>
+                    <a href="#" data-page="routeplanner" class="nav-link text-gray-300 hover:text-green-400 transition" data-i18n="navRoute">🗺️ Route Planner</a>
+                    <a href="#" data-page="dashboard" class="nav-link text-gray-300 hover:text-green-400 transition" data-i18n="navDashboard">📊 Dashboard</a>
+                    <a href="#" data-page="feedback" class="nav-link text-gray-300 hover:text-green-400 transition" data-i18n="navFeedback">💬 Feedback</a>
+                    <a href="#" data-page="admin" class="nav-link text-gray-300 hover:text-green-400 transition hidden" id="adminNav" data-i18n="navAdmin">⚙️ Admin</a>
+                </div>
+                <div class="flex items-center space-x-3 flex-wrap">
+                    <span id="userGreeting" class="text-sm text-green-300 font-medium"></span>
+                    <button id="authBtn" class="bg-green-700 hover:bg-green-600 px-5 py-2 rounded-full text-sm font-semibold transition shadow-md" data-i18n="authBtn">Login</button>
+                    <button id="langToggle" class="lang-btn" title="Toggle Language / ಭಾಷೆ ಬದಲಿಸಿ">EN / ಕ</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 py-8" id="app-content"></main>
+
+    <div id="voiceBtn" class="voice-btn" title="Voice Command / ಧ್ವನಿ ಆಜ್ಞೆ">
+        <i class="fas fa-microphone-alt text-2xl text-white"></i>
+    </div>
+
+    <footer class="border-t border-green-900/40 mt-20 py-6 text-center text-gray-400 text-sm">
+        <p data-i18n="footer">⚡ EcoCharge Pro — AI-Ready Network | Real-time availability | Smart Charging Ecosystem | Carbon Tracker</p>
+    </footer>
+
+    <script>
+        // ============================================================
+        //  🌐 TRANSLATION SYSTEM (English / Kannada)
+        // ============================================================
+        const TRANSLATIONS = {
+            en: {
+                appName: 'EcoCharge Pro',
+                navHome: '🏠 Home',
+                navFinder: '📍 Station Finder',
+                navBooking: '📅 Slot Booking',
+                navRoute: '🗺️ Route Planner',
+                navDashboard: '📊 Dashboard',
+                navFeedback: '💬 Feedback',
+                navAdmin: '⚙️ Admin',
+                authBtn: 'Login',
+                footer: '⚡ EcoCharge Pro — AI-Ready Network | Real-time availability | Smart Charging Ecosystem | Carbon Tracker',
+                // Home
+                homeTitle: 'Drive Pure.<br>Charge <span class="ev-green animate-glow">Intelligently</span>.',
+                homeSub: 'AI Recommendations · Dynamic Pricing · Carbon Tracking · Voice Control',
+                homeFindBtn: 'Find Nearby',
+                homeAIBtn: 'AI Features Preview',
+                homeAIEngine: 'AI Engine',
+                homeAIEngineDesc: 'Smart scheduling',
+                homeCarbon: 'Carbon Saved',
+                homeQueue: 'Live Queue',
+                homeQueueDesc: 'Real-time waiting',
+                homeVoice: 'Voice Ready',
+                homeVoiceDesc: 'Tap mic',
+                homeAIFeatures: '🤖 AI-Powered Features (Active)',
+                homeAIRecommend: 'Recommendation Engine',
+                homeAIRecommendDesc: 'Personalized station picks',
+                homeAIPricing: 'Dynamic Pricing',
+                homeAIPricingDesc: 'Real-time surge',
+                homeAIRoute: 'Route Planner',
+                homeAIRouteDesc: 'Optimal EV routing',
+                homeAIAnalytics: 'Live Analytics',
+                homeAIAnalyticsDesc: 'Admin dashboard',
+                homeQR: 'QR Check-in',
+                homeQRDesc: 'Scan & charge seamlessly',
+                homeQueueSystem: 'Queue System',
+                homeQueueSystemDesc: 'Join virtual queue when full → auto notification',
+                // Finder
+                finderTitle: 'Nearby EV Stations',
+                finderAll: 'All',
+                finderCCS: 'CCS/DC',
+                finderType2: 'Type 2',
+                finderDistance: 'Distance',
+                finderLive: '📍 Live Stations (Dynamic Price)',
+                finderBook: 'Book',
+                // Booking
+                bookingTitle: 'Smart Slot + Queue + QR',
+                bookingSelect: 'Select Station',
+                bookingDate: 'Date',
+                bookingTime: 'Time Slot',
+                bookingCheck: 'Check Live Availability',
+                bookingAvailFree: '✅ Slot free! Dynamic price: $',
+                bookingAvailTaken: '❌ Slot already occupied',
+                bookingAIRecommend: '🤖 AI Recommendation: Based on current traffic, best time to charge is ',
+                bookingConfirm: 'Confirm Booking & Get QR',
+                bookingQueue: 'Join Queue if Full',
+                bookingQR: 'Booking confirmed! Scan QR at station.',
+                bookingDownload: '📥 Download Booking',
+                bookingSimCheckin: 'Simulate QR Check-in',
+                bookingNoSlot: 'Station has slots available. Please book directly.',
+                bookingQueueJoined: 'You joined the queue! You will be notified when a slot opens.',
+                // Route
+                routeTitle: 'EV Route Planner',
+                routeSub: 'Plan your trip with optimal charging stops (AI suggested)',
+                routeStart: 'Start location (lat,lng or address)',
+                routeEnd: 'Destination (lat,lng or address)',
+                routePlan: 'Plan Route',
+                // Dashboard
+                dashActive: 'Active Bookings',
+                dashCancel: 'Cancel',
+                dashNoActive: 'No active bookings',
+                dashCarbon: 'Carbon Tracking',
+                dashCarbonTotal: 'Total CO₂ saved: ',
+                dashTrees: 'equivalent to planting ',
+                dashTreesEnd: ' trees',
+                dashAIRecommend: 'AI Recommendation Engine',
+                dashAIRecommendText: 'Based on your driving patterns, we recommend ',
+                dashAIRecommendPrice: 'for your next charge. Estimated price: $',
+                dashBookRecommended: 'Book Recommended',
+                dashWallet: 'Wallet: $',
+                dashQueueStatus: 'Queue Status: ',
+                dashNoQueues: 'No active queues',
+                dashQueueText: 'You are in queue for: ',
+                dashPricingAlert: 'Dynamic Pricing Alert: Prices adjust every 15min based on demand.',
+                dashLastQR: 'Show last booking QR',
+                // Admin
+                adminTitle: '🛡️ Live Analytics Dashboard',
+                adminRevenue: 'Revenue',
+                adminQueueSystem: 'Queue System',
+                adminTotalQueue: 'Total in queues: ',
+                adminUtilization: 'Utilization',
+                adminManageStations: 'Manage Stations & Dynamic Pricing',
+                adminAddStation: '+ Add Station',
+                adminReset: 'Reset System',
+                adminDelete: 'Delete',
+                adminNamePlaceholder: 'Name',
+                adminPricePlaceholder: 'Base price',
+                // Feedback
+                feedbackTitle: '💬 Share Your Feedback',
+                feedbackSub: 'We value your opinion. Help us improve EcoCharge Pro.',
+                feedbackName: 'Your Name',
+                feedbackEmail: 'Your Email (optional)',
+                feedbackRating: 'Rate your experience',
+                feedbackComment: 'Your Feedback',
+                feedbackSubmit: 'Submit Feedback',
+                feedbackThanks: 'Thank you for your valuable feedback! 🙏',
+                feedbackPlaceholder: 'Tell us about your experience...',
+                // Voice
+                voiceHelp: '🎤 Voice commands: "Find stations", "Book slot", "Dashboard", "Route planner", "Feedback", "Home", "Help"',
+                // Booking download
+                downloadTitle: '📄 Booking Details',
+                downloadStation: 'Station',
+                downloadTime: 'Time',
+                downloadUser: 'User',
+                downloadCost: 'Cost',
+                downloadStatus: 'Status',
+                downloadCarbon: 'Carbon Saved',
+                downloadDate: 'Date',
+                downloadID: 'Booking ID',
+                downloadThankYou: 'Thank you for choosing EcoCharge Pro!',
+                downloadBtn: '📥 Download Booking Details',
+            },
+            kn: {
+                appName: 'ಇಕೋಚಾರ್ಜ್ ಪ್ರೊ',
+                navHome: '🏠 ಮುಖಪುಟ',
+                navFinder: '📍 ನಿಲ್ದಾಣ ಹುಡುಕಿ',
+                navBooking: '📅 ಸ್ಲಾಟ್ ಬುಕಿಂಗ್',
+                navRoute: '🗺️ ಮಾರ್ಗ ಯೋಜಕ',
+                navDashboard: '📊 ಡ್ಯಾಶ್ಬೋರ್ಡ್',
+                navFeedback: '💬 ಪ್ರತಿಕ್ರಿಯೆ',
+                navAdmin: '⚙️ ನಿರ್ವಾಹಕ',
+                authBtn: 'ಲಾಗಿನ್',
+                footer: '⚡ ಇಕೋಚಾರ್ಜ್ ಪ್ರೊ — ಎಐ-ಸಿದ್ಧ ಜಾಲ | ನೈಜ-ಸಮಯ ಲಭ್ಯತೆ | ಸ್ಮಾರ್ಟ್ ಚಾರ್ಜಿಂಗ್ ಪರಿಸರ | ಇಂಗಾಲ ಟ್ರ್ಯಾಕರ್',
+                homeTitle: 'ಶುದ್ಧ ಚಾಲನೆ.<br><span class="ev-green animate-glow">ಬುದ್ಧಿವಂತಿಕೆಯಿಂದ</span> ಚಾರ್ಜ್ ಮಾಡಿ.',
+                homeSub: 'ಎಐ ಶಿಫಾರಸುಗಳು · ಡೈನಾಮಿಕ್ ಬೆಲೆ · ಇಂಗಾಲ ಟ್ರ್ಯಾಕಿಂಗ್ · ಧ್ವನಿ ನಿಯಂತ್ರಣ',
+                homeFindBtn: 'ಹತ್ತಿರ ಹುಡುಕಿ',
+                homeAIBtn: 'ಎಐ ವೈಶಿಷ್ಟ್ಯಗಳು ಮುನ್ನೋಟ',
+                homeAIEngine: 'ಎಐ ಎಂಜಿನ್',
+                homeAIEngineDesc: 'ಸ್ಮಾರ್ಟ್ ವೇಳಾಪಟ್ಟಿ',
+                homeCarbon: 'ಇಂಗಾಲ ಉಳಿತಾಯ',
+                homeQueue: 'ಲೈವ್ ಕ್ಯೂ',
+                homeQueueDesc: 'ನೈಜ-ಸಮಯ ಕಾಯುವಿಕೆ',
+                homeVoice: 'ಧ್ವನಿ ಸಿದ್ಧ',
+                homeVoiceDesc: 'ಮೈಕ್ ಒತ್ತಿರಿ',
+                homeAIFeatures: '🤖 ಎಐ-ಚಾಲಿತ ವೈಶಿಷ್ಟ್ಯಗಳು (ಸಕ್ರಿಯ)',
+                homeAIRecommend: 'ಶಿಫಾರಸು ಎಂಜಿನ್',
+                homeAIRecommendDesc: 'ವೈಯಕ್ತಿಕ ನಿಲ್ದಾಣ ಆಯ್ಕೆ',
+                homeAIPricing: 'ಡೈನಾಮಿಕ್ ಬೆಲೆ',
+                homeAIPricingDesc: 'ನೈಜ-ಸಮಯ ಏರಿಕೆ',
+                homeAIRoute: 'ಮಾರ್ಗ ಯೋಜಕ',
+                homeAIRouteDesc: 'ಅತ್ಯುತ್ತಮ ಇವಿ ಮಾರ್ಗ',
+                homeAIAnalytics: 'ಲೈವ್ ವಿಶ್ಲೇಷಣೆ',
+                homeAIAnalyticsDesc: 'ನಿರ್ವಾಹಕ ಡ್ಯಾಶ್ಬೋರ್ಡ್',
+                homeQR: 'ಕ್ಯೂಆರ್ ಚೆಕ್-ಇನ್',
+                homeQRDesc: 'ಸ್ಕ್ಯಾನ್ ಮಾಡಿ ಚಾರ್ಜ್ ಮಾಡಿ',
+                homeQueueSystem: 'ಕ್ಯೂ ವ್ಯವಸ್ಥೆ',
+                homeQueueSystemDesc: 'ತುಂಬಿದಾಗ ವರ್ಚುವಲ್ ಕ್ಯೂ ಸೇರಿ → ಸ್ವಯಂ ಸೂಚನೆ',
+                finderTitle: 'ಹತ್ತಿರದ ಇವಿ ನಿಲ್ದಾಣಗಳು',
+                finderAll: 'ಎಲ್ಲಾ',
+                finderCCS: 'ಸಿಸಿಎಸ್/ಡಿಸಿ',
+                finderType2: 'ಟೈಪ್ 2',
+                finderDistance: 'ದೂರ',
+                finderLive: '📍 ಲೈವ್ ನಿಲ್ದಾಣಗಳು (ಡೈನಾಮಿಕ್ ಬೆಲೆ)',
+                finderBook: 'ಬುಕ್',
+                bookingTitle: 'ಸ್ಮಾರ್ಟ್ ಸ್ಲಾಟ್ + ಕ್ಯೂ + ಕ್ಯೂಆರ್',
+                bookingSelect: 'ನಿಲ್ದಾಣ ಆಯ್ಕೆಮಾಡಿ',
+                bookingDate: 'ದಿನಾಂಕ',
+                bookingTime: 'ಸಮಯ ಸ್ಲಾಟ್',
+                bookingCheck: 'ಲೈವ್ ಲಭ್ಯತೆ ಪರಿಶೀಲಿಸಿ',
+                bookingAvailFree: '✅ ಸ್ಲಾಟ್ ಮುಕ್ತವಿದೆ! ಡೈನಾಮಿಕ್ ಬೆಲೆ: $',
+                bookingAvailTaken: '❌ ಸ್ಲಾಟ್ ಈಗಾಗಲೇ ಆಕ್ರಮಿಸಲಾಗಿದೆ',
+                bookingAIRecommend: '🤖 ಎಐ ಶಿಫಾರಸು: ಪ್ರಸ್ತುತ ಸಂಚಾರದ ಆಧಾರದ ಮೇಲೆ, ಚಾರ್ಜ್ ಮಾಡಲು ಉತ್ತಮ ಸಮಯ ',
+                bookingConfirm: 'ಬುಕಿಂಗ್ ದೃಢೀಕರಿಸಿ & ಕ್ಯೂಆರ್ ಪಡೆಯಿರಿ',
+                bookingQueue: 'ತುಂಬಿದ್ದರೆ ಕ್ಯೂ ಸೇರಿ',
+                bookingQR: 'ಬುಕಿಂಗ್ ದೃಢೀಕರಿಸಲಾಗಿದೆ! ನಿಲ್ದಾಣದಲ್ಲಿ ಕ್ಯೂಆರ್ ಸ್ಕ್ಯಾನ್ ಮಾಡಿ.',
+                bookingDownload: '📥 ಬುಕಿಂಗ್ ಡೌನ್ಲೋಡ್',
+                bookingSimCheckin: 'ಕ್ಯೂಆರ್ ಚೆಕ್-ಇನ್ ಅನುಕರಿಸಿ',
+                bookingNoSlot: 'ನಿಲ್ದಾಣದಲ್ಲಿ ಸ್ಲಾಟ್ಗಳು ಲಭ್ಯವಿದೆ. ದಯವಿಟ್ಟು ನೇರವಾಗಿ ಬುಕ್ ಮಾಡಿ.',
+                bookingQueueJoined: 'ನೀವು ಕ್ಯೂ ಸೇರಿದ್ದೀರಿ! ಸ್ಲಾಟ್ ತೆರೆದಾಗ ನಿಮಗೆ ಸೂಚನೆ ನೀಡಲಾಗುವುದು.',
+                routeTitle: 'ಇವಿ ಮಾರ್ಗ ಯೋಜಕ',
+                routeSub: 'ಅತ್ಯುತ್ತಮ ಚಾರ್ಜಿಂಗ್ ನಿಲ್ದಾಣಗಳೊಂದಿಗೆ ನಿಮ್ಮ ಪ್ರಯಾಣವನ್ನು ಯೋಜಿಸಿ (ಎಐ ಸೂಚಿಸಿದ)',
+                routeStart: 'ಪ್ರಾರಂಭ ಸ್ಥಳ (ಅಕ್ಷಾಂಶ,ರೇಖಾಂಶ ಅಥವಾ ವಿಳಾಸ)',
+                routeEnd: 'ಗಮ್ಯಸ್ಥಾನ (ಅಕ್ಷಾಂಶ,ರೇಖಾಂಶ ಅಥವಾ ವಿಳಾಸ)',
+                routePlan: 'ಮಾರ್ಗ ಯೋಜಿಸಿ',
+                dashActive: 'ಸಕ್ರಿಯ ಬುಕಿಂಗ್ಗಳು',
+                dashCancel: 'ರದ್ದುಮಾಡಿ',
+                dashNoActive: 'ಯಾವುದೇ ಸಕ್ರಿಯ ಬುಕಿಂಗ್ಗಳಿಲ್ಲ',
+                dashCarbon: 'ಇಂಗಾಲ ಟ್ರ್ಯಾಕಿಂಗ್',
+                dashCarbonTotal: 'ಒಟ್ಟು CO₂ ಉಳಿತಾಯ: ',
+                dashTrees: 'ಗೆ ಸಮಾನ ',
+                dashTreesEnd: ' ಮರಗಳು',
+                dashAIRecommend: 'ಎಐ ಶಿಫಾರಸು ಎಂಜಿನ್',
+                dashAIRecommendText: 'ನಿಮ್ಮ ಚಾಲನಾ ಮಾದರಿಗಳ ಆಧಾರದ ಮೇಲೆ, ನಾವು ಶಿಫಾರಸು ಮಾಡುತ್ತೇವೆ ',
+                dashAIRecommendPrice: 'ನಿಮ್ಮ ಮುಂದಿನ ಚಾರ್ಜ್ಗೆ. ಅಂದಾಜು ಬೆಲೆ: $',
+                dashBookRecommended: 'ಶಿಫಾರಸು ಬುಕ್ ಮಾಡಿ',
+                dashWallet: 'ವ್ಯಾಲೆಟ್: $',
+                dashQueueStatus: 'ಕ್ಯೂ ಸ್ಥಿತಿ: ',
+                dashNoQueues: 'ಯಾವುದೇ ಸಕ್ರಿಯ ಕ್ಯೂಗಳಿಲ್ಲ',
+                dashQueueText: 'ನೀವು ಇದರ ಕ್ಯೂನಲ್ಲಿದ್ದೀರಿ: ',
+                dashPricingAlert: 'ಡೈನಾಮಿಕ್ ಬೆಲೆ ಎಚ್ಚರಿಕೆ: ಬೆಲೆಗಳು ಬೇಡಿಕೆಯ ಆಧಾರದ ಮೇಲೆ ಪ್ರತಿ 15 ನಿಮಿಷಕ್ಕೆ ಹೊಂದಿಸುತ್ತವೆ.',
+                dashLastQR: 'ಕೊನೆಯ ಬುಕಿಂಗ್ ಕ್ಯೂಆರ್ ತೋರಿಸಿ',
+                adminTitle: '🛡️ ಲೈವ್ ವಿಶ್ಲೇಷಣೆ ಡ್ಯಾಶ್ಬೋರ್ಡ್',
+                adminRevenue: 'ಆದಾಯ',
+                adminQueueSystem: 'ಕ್ಯೂ ವ್ಯವಸ್ಥೆ',
+                adminTotalQueue: 'ಒಟ್ಟು ಕ್ಯೂನಲ್ಲಿ: ',
+                adminUtilization: 'ಬಳಕೆ',
+                adminManageStations: 'ನಿಲ್ದಾಣಗಳು & ಡೈನಾಮಿಕ್ ಬೆಲೆ ನಿರ್ವಹಿಸಿ',
+                adminAddStation: '+ ನಿಲ್ದಾಣ ಸೇರಿಸಿ',
+                adminReset: 'ವ್ಯವಸ್ಥೆ ಮರುಹೊಂದಿಸಿ',
+                adminDelete: 'ಅಳಿಸಿ',
+                adminNamePlaceholder: 'ಹೆಸರು',
+                adminPricePlaceholder: 'ಮೂಲ ಬೆಲೆ',
+                feedbackTitle: '💬 ನಿಮ್ಮ ಪ್ರತಿಕ್ರಿಯೆ ಹಂಚಿಕೊಳ್ಳಿ',
+                feedbackSub: 'ನಿಮ್ಮ ಅಭಿಪ್ರಾಯ ನಮಗೆ ಮುಖ್ಯ. ಇಕೋಚಾರ್ಜ್ ಪ್ರೊ ಸುಧಾರಿಸಲು ಸಹಾಯ ಮಾಡಿ.',
+                feedbackName: 'ನಿಮ್ಮ ಹೆಸರು',
+                feedbackEmail: 'ನಿಮ್ಮ ಇಮೇಲ್ (ಐಚ್ಛಿಕ)',
+                feedbackRating: 'ನಿಮ್ಮ ಅನುಭವವನ್ನು ರೇಟ್ ಮಾಡಿ',
+                feedbackComment: 'ನಿಮ್ಮ ಪ್ರತಿಕ್ರಿಯೆ',
+                feedbackSubmit: 'ಪ್ರತಿಕ್ರಿಯೆ ಸಲ್ಲಿಸಿ',
+                feedbackThanks: 'ನಿಮ್ಮ ಅಮೂಲ್ಯ ಪ್ರತಿಕ್ರಿಯೆಗೆ ಧನ್ಯವಾದಗಳು! 🙏',
+                feedbackPlaceholder: 'ನಿಮ್ಮ ಅನುಭವದ ಬಗ್ಗೆ ತಿಳಿಸಿ...',
+                voiceHelp: '🎤 ಧ್ವನಿ ಆಜ್ಞೆಗಳು: "ನಿಲ್ದಾಣಗಳನ್ನು ಹುಡುಕಿ", "ಸ್ಲಾಟ್ ಬುಕ್", "ಡ್ಯಾಶ್ಬೋರ್ಡ್", "ಮಾರ್ಗ ಯೋಜಕ", "ಪ್ರತಿಕ್ರಿಯೆ", "ಮುಖಪುಟ", "ಸಹಾಯ"',
+                downloadTitle: '📄 ಬುಕಿಂಗ್ ವಿವರಗಳು',
+                downloadStation: 'ನಿಲ್ದಾಣ',
+                downloadTime: 'ಸಮಯ',
+                downloadUser: 'ಬಳಕೆದಾರ',
+                downloadCost: 'ವೆಚ್ಚ',
+                downloadStatus: 'ಸ್ಥಿತಿ',
+                downloadCarbon: 'ಇಂಗಾಲ ಉಳಿತಾಯ',
+                downloadDate: 'ದಿನಾಂಕ',
+                downloadID: 'ಬುಕಿಂಗ್ ಐಡಿ',
+                downloadThankYou: 'ಇಕೋಚಾರ್ಜ್ ಪ್ರೊ ಆಯ್ಕೆ ಮಾಡಿದ್ದಕ್ಕೆ ಧನ್ಯವಾದಗಳು!',
+                downloadBtn: '📥 ಬುಕಿಂಗ್ ವಿವರಗಳು ಡೌನ್ಲೋಡ್',
+            }
+        };
+
+        let currentLang = 'en';
+
+        function t(key) {
+            return TRANSLATIONS[currentLang]?.[key] || key;
+        }
+
+        function applyTranslations() {
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                const val = t(key);
+                if (val) {
+                    // If it contains HTML, use innerHTML, else textContent
+                    if (val.includes('<')) {
+                        el.innerHTML = val;
+                    } else {
+                        el.textContent = val;
+                    }
+                }
+            });
+            // Update lang button text
+            const langBtn = document.getElementById('langToggle');
+            if (langBtn) {
+                langBtn.textContent = currentLang === 'en' ? 'EN / ಕ' : 'ಕ / EN';
+            }
+            // Re-render current page with new language
+            if (currentPage) {
+                renderPage(currentPage);
+            }
+        }
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'en' ? 'kn' : 'en';
+            document.documentElement.lang = currentLang;
+            if (currentLang === 'kn') {
+                document.documentElement.classList.add('lang-kn');
+            } else {
+                document.documentElement.classList.remove('lang-kn');
+            }
+            applyTranslations();
+            showToast(currentLang === 'en' ? '🌐 Switched to English' : '🌐 ಕನ್ನಡಕ್ಕೆ ಬದಲಾಯಿಸಲಾಗಿದೆ');
+        }
+
+        // ============================================================
+        //  STORAGE KEYS
+        // ============================================================
+        const STORAGE = {
+            USERS: 'ev_users_pro',
+            STATIONS: 'ev_stations_pro',
+            BOOKINGS: 'ev_bookings_pro',
+            FAVORITES: 'ev_fav_pro',
+            NOTIFICATIONS: 'ev_notif_pro',
+            CURRENT_USER: 'ev_current_pro',
+            WALLET_TX: 'ev_wallet_tx',
+            QUEUES: 'ev_queues',
+            CARBON: 'ev_carbon',
+            FEEDBACK: 'ev_feedback_pro'
+        };
+        const hashPass = pwd => CryptoJS.SHA256(pwd).toString();
+
+        function initData() {
+            if (!localStorage.getItem(STORAGE.USERS)) {
+                localStorage.setItem(STORAGE.USERS, JSON.stringify([
+                    { id: 'adm1', email: 'admin@ecocharge.com', password: hashPass('admin123'), name: 'Alex Admin',
+                        role: 'admin', wallet: 999, favorites: [], totalCarbonSaved: 0 },
+                    { id: 'usr1', email: 'emma@ev.com', password: hashPass('evuser'), name: 'Emma Watson',
+                        role: 'user', wallet: 87.50, favorites: [], totalCarbonSaved: 12.4 }
+                ]));
+            }
+            if (!localStorage.getItem(STORAGE.STATIONS)) {
+                localStorage.setItem(STORAGE.STATIONS, JSON.stringify([
+                    { id: 's1', name: '⚡ GreenPulse Downtown', lat: 40.7128, lng: -74.006,
+                        address: '200 Liberty St, NYC', chargerType: 'CCS / CHAdeMO (150kW)', basePrice: 0.49,
+                        totalSpots: 4, availableNow: 2, rating: 4.8, trafficFactor: 0.8, queueSize: 0 },
+                    { id: 's2', name: '🔆 SolarEdge Central', lat: 40.758, lng: -73.9855, address: 'Times Square',
+                        chargerType: 'Type 2 (22kW)', basePrice: 0.35, totalSpots: 6, availableNow: 3, rating: 4.6,
+                        trafficFactor: 0.6, queueSize: 1 },
+                    { id: 's3', name: '🚀 EcoCharge Brooklyn Hub', lat: 40.6782, lng: -73.9442,
+                        address: 'Brooklyn Bridge Park', chargerType: 'DC Fast (150kW)', basePrice: 0.69,
+                        totalSpots: 3, availableNow: 1, rating: 4.9, trafficFactor: 0.9, queueSize: 2 },
+                    { id: 's4', name: '🌿 Queens EV Plaza', lat: 40.7282, lng: -73.7949, address: 'Queens Blvd',
+                        chargerType: 'CCS / Type 2', basePrice: 0.42, totalSpots: 5, availableNow: 4, rating: 4.4,
+                        trafficFactor: 0.5, queueSize: 0 }
+                ]));
+            }
+            if (!localStorage.getItem(STORAGE.BOOKINGS)) localStorage.setItem(STORAGE.BOOKINGS, '[]');
+            if (!localStorage.getItem(STORAGE.FAVORITES)) localStorage.setItem(STORAGE.FAVORITES, '{}');
+            if (!localStorage.getItem(STORAGE.NOTIFICATIONS)) localStorage.setItem(STORAGE.NOTIFICATIONS, '[]');
+            if (!localStorage.getItem(STORAGE.WALLET_TX)) localStorage.setItem(STORAGE.WALLET_TX, '[]');
+            if (!localStorage.getItem(STORAGE.QUEUES)) localStorage.setItem(STORAGE.QUEUES, '{}');
+            if (!localStorage.getItem(STORAGE.CARBON)) localStorage.setItem(STORAGE.CARBON, '[]');
+            if (!localStorage.getItem(STORAGE.FEEDBACK)) localStorage.setItem(STORAGE.FEEDBACK, '[]');
+        }
+        initData();
+
+        const getUsers = () => JSON.parse(localStorage.getItem(STORAGE.USERS));
+        const getStations = () => JSON.parse(localStorage.getItem(STORAGE.STATIONS));
+        const getBookings = () => JSON.parse(localStorage.getItem(STORAGE.BOOKINGS));
+        const saveBookings = (b) => localStorage.setItem(STORAGE.BOOKINGS, JSON.stringify(b));
+        const saveUsers = (u) => localStorage.setItem(STORAGE.USERS, JSON.stringify(u));
+        const saveStations = (s) => localStorage.setItem(STORAGE.STATIONS, JSON.stringify(s));
+        const addNotification = (userId, msg) => { let n = JSON.parse(localStorage.getItem(STORAGE.NOTIFICATIONS)); n
+            .push({ userId, msg, date: new Date().toISOString(), read: false });
+            localStorage.setItem(STORAGE.NOTIFICATIONS, JSON.stringify(n)); };
+        const getFav = (uid) => { const f = JSON.parse(localStorage.getItem(STORAGE.FAVORITES)); return f[uid] || []; };
+        const saveFav = (uid, arr) => { const f = JSON.parse(localStorage.getItem(STORAGE.FAVORITES)); f[uid] = arr;
+            localStorage.setItem(STORAGE.FAVORITES, JSON.stringify(f)); };
+
+        function getDynamicPrice(station) {
+            let demandFactor = (station.totalSpots - station.availableNow) / station.totalSpots;
+            let surge = 1 + (demandFactor * 0.5);
+            return +(station.basePrice * surge).toFixed(2);
+        }
+
+        function refreshStationAvailability() {
+            let stations = getStations();
+            stations = stations.map(s => {
+                let bookings = getBookings().filter(b => b.stationId === s.id && b.status === 'active' && new Date(
+                b.date) >= new Date());
+                let bookedSpots = bookings.length;
+                let newAvailable = Math.max(0, s.totalSpots - bookedSpots);
+                return { ...s, availableNow: newAvailable };
+            });
+            saveStations(stations);
+        }
+
+        function addCarbonSavings(userId, kwh) {
+            let saved = kwh * 0.4;
+            let carbonEntries = JSON.parse(localStorage.getItem(STORAGE.CARBON));
+            carbonEntries.push({ userId, amount: saved, date: new Date().toISOString(), kwh });
+            localStorage.setItem(STORAGE.CARBON, JSON.stringify(carbonEntries));
+            let users = getUsers();
+            let user = users.find(u => u.id === userId);
+            if (user) {
+                user.totalCarbonSaved = (user.totalCarbonSaved || 0) + saved;
+                saveUsers(users);
+            }
+            return saved;
+        }
+
+        function joinQueue(stationId, userId) {
+            let queues = JSON.parse(localStorage.getItem(STORAGE.QUEUES));
+            if (!queues[stationId]) queues[stationId] = [];
+            if (!queues[stationId].includes(userId)) {
+                queues[stationId].push(userId);
+                localStorage.setItem(STORAGE.QUEUES, JSON.stringify(queues));
+                addNotification(userId, `You joined the queue for ${getStations().find(s=>s.id===stationId)?.name}. You are #${
+                    queues[stationId].length}`);
+                setTimeout(() => processQueue(stationId), 15000);
+            }
+        }
+
+        function processQueue(stationId) {
+            let queues = JSON.parse(localStorage.getItem(STORAGE.QUEUES));
+            if (queues[stationId] && queues[stationId].length > 0) {
+                let nextUser = queues[stationId].shift();
+                localStorage.setItem(STORAGE.QUEUES, JSON.stringify(queues));
+                addNotification(nextUser,
+                    `🎉 A slot just opened at ${getStations().find(s=>s.id===stationId)?.name}! Book now.`);
+            }
+        }
+
+        let currentUser = null;
+        let leafletMap = null,
+            mapMarkers = [];
+        let currentPage = 'home';
+        let lastBookingQRText = '';
+        let lastBookingData = null;
+
+        // ============================================================
+        //  AUTH
+        // ============================================================
+        function login(email, pass, remember) {
+            const users = getUsers();
+            const user = users.find(u => u.email === email && u.password === hashPass(pass));
+            if (user) {
+                currentUser = { ...user, password: undefined };
+                localStorage.setItem(STORAGE.CURRENT_USER, JSON.stringify(currentUser));
+                if (remember) localStorage.setItem('rem_ev_email', email);
+                else localStorage.removeItem('rem_ev_email');
+                updateNavbar();
+                renderPage(currentPage);
+                addNotification(currentUser.id, `🔋 Welcome back, ${currentUser.name}!`);
+                return true;
+            }
+            return false;
+        }
+
+        function signup(name, email, pass) {
+            let users = getUsers();
+            if (users.find(u => u.email === email)) return false;
+            const newUser = { id: 'u' + Date.now(), email, password: hashPass(pass), name, role: 'user', wallet: 25.0,
+                favorites: [], totalCarbonSaved: 0 };
+            users.push(newUser);
+            saveUsers(users);
+            return login(email, pass, false);
+        }
+
+        function logout() { localStorage.removeItem(STORAGE.CURRENT_USER);
+            currentUser = null;
+            updateNavbar();
+            renderPage('home'); }
+
+        function updateNavbar() {
+            const authBtn = document.getElementById('authBtn'),
+                greet = document.getElementById('userGreeting'),
+                adminNav = document.getElementById('adminNav');
+            if (currentUser) {
+                authBtn.innerText = '🚪 Logout';
+                authBtn.onclick = () => logout();
+                greet.innerHTML = `<i class="fas fa-user-circle mr-1"></i> ${currentUser.name}`;
+                if (currentUser.role === 'admin') adminNav.classList.remove('hidden');
+                else adminNav.classList.add('hidden');
+            } else {
+                authBtn.innerText = '🔑 Login / Signup';
+                authBtn.onclick = () => showAuthModal();
+                greet.innerHTML = '';
+                adminNav.classList.add('hidden');
+            }
+        }
+
+        function showAuthModal() {
+            const modalHtml = `
+            <div id="authModal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50">
+                <div class="bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-green-500/50 shadow-2xl">
+                    <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold ev-green"><i class="fas fa-charging-station"></i> EcoCharge Access</h2><i class="fas fa-times cursor-pointer text-gray-400 hover:text-white text-xl" id="closeModal"></i></div>
+                    <div class="flex space-x-2 mb-4"><button id="showLoginTab" class="flex-1 py-2 rounded-lg bg-green-700">Login</button><button id="showSignupTab" class="flex-1 py-2 rounded-lg bg-gray-700">Signup</button></div>
+                    <div id="loginForm"><input type="email" id="loginEmail" placeholder="Email" class="w-full p-3 rounded bg-gray-800 border border-gray-700 mb-3"><input type="password" id="loginPassword" placeholder="Password" class="w-full p-3 rounded bg-gray-800 mb-2"><div class="flex items-center mb-4"><input type="checkbox" id="rememberMe"><label class="ml-2">Remember me</label></div><button id="doLogin" class="btn-primary w-full py-2 rounded-lg">Login</button><p class="text-center text-sm mt-3"><a href="#" id="forgotPwdLink" class="ev-green">Forgot password?</a></p></div>
+                    <div id="signupForm" class="hidden"><input type="text" id="signupName" placeholder="Full Name" class="w-full p-3 rounded bg-gray-800 mb-3"><input type="email" id="signupEmail" placeholder="Email" class="w-full p-3 rounded bg-gray-800 mb-3"><input type="password" id="signupPassword" placeholder="Password (min 4)" class="w-full p-3 rounded bg-gray-800 mb-4"><button id="doSignup" class="btn-primary w-full py-2 rounded-lg">Create Account + $25 Bonus</button></div>
+                </div>
+            </div>`;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            document.getElementById('showLoginTab').onclick = () => { document.getElementById('loginForm').classList.remove(
+                    'hidden');
+                document.getElementById('signupForm').classList.add('hidden'); };
+            document.getElementById('showSignupTab').onclick = () => { document.getElementById('loginForm').classList.add(
+                    'hidden');
+                document.getElementById('signupForm').classList.remove('hidden'); };
+            document.getElementById('closeModal').onclick = () => document.getElementById('authModal')?.remove();
+            document.getElementById('doLogin').onclick = () => { let email = document.getElementById('loginEmail').value,
+                    pwd = document.getElementById('loginPassword').value,
+                    rem = document.getElementById('rememberMe').checked; if (login(email, pwd, rem)) document
+                    .getElementById('authModal')?.remove();
+                else alert('❌ Invalid credentials'); };
+            document.getElementById('doSignup').onclick = () => { let name = document.getElementById('signupName').value,
+                    email = document.getElementById('signupEmail').value,
+                    pwd = document.getElementById('signupPassword').value; if (name && email && pwd.length >= 4) { if (
+                        signup(name, email, pwd)) document.getElementById('authModal')?.remove();
+                    else alert('Email already exists'); } else alert('Fill all fields correctly'); };
+            document.getElementById('forgotPwdLink').onclick = (e) => { e.preventDefault();
+                alert('📧 Demo reset: use admin@ecocharge.com / admin123'); };
+        }
+
+        // ============================================================
+        //  TOAST
+        // ============================================================
+        function showToast(msg, duration = 3000) {
+            const el = document.getElementById('toast');
+            el.textContent = msg;
+            el.classList.add('show');
+            clearTimeout(el._timer);
+            el._timer = setTimeout(() => el.classList.remove('show'), duration);
+        }
+
+        // ============================================================
+        //  RENDER ENGINE
+        // ============================================================
+        function renderPage(page) {
+            refreshStationAvailability();
+            currentPage = page;
+            const container = document.getElementById('app-content');
+            if (page === 'home') container.innerHTML = renderHome();
+            else if (page === 'finder') { container.innerHTML = renderStationFinder();
+                setTimeout(() => initFinderMap(), 100); } else if (page === 'booking') container.innerHTML =
+                renderBookingPage();
+            else if (page === 'routeplanner') container.innerHTML = renderRoutePlanner();
+            else if (page === 'dashboard') container.innerHTML = renderDashboard();
+            else if (page === 'feedback') container.innerHTML = renderFeedbackPage();
+            else if (page === 'admin') { if (currentUser?.role === 'admin') container.innerHTML = renderAdminPanel();
+                else container.innerHTML =
+                    '<div class="glass-card p-8 text-center text-red-400">⛔ Access Denied. Admin only.</div>';
+                initAdminChart(); }
+            attachPageEvents();
+            // Re-apply translations after rendering
+            applyTranslations();
+        }
+
+        // ============================================================
+        //  HOME
+        // ============================================================
+        function renderHome() {
+            return `<div class="space-y-12">
+                <div class="relative rounded-3xl overflow-hidden bg-gradient-to-r from-green-900/80 to-black p-8 md:p-12 border border-green-500/30"><div class="relative z-10"><h1 class="text-4xl md:text-6xl font-bold" data-i18n="homeTitle">Drive Pure.<br>Charge <span class="ev-green animate-glow">Intelligently</span>.</h1><p class="mt-4 text-xl text-gray-300" data-i18n="homeSub">AI Recommendations · Dynamic Pricing · Carbon Tracking · Voice Control</p><div class="mt-8 flex gap-4 flex-wrap"><button onclick="document.querySelector('[data-page=\\'finder\\']').click()" class="btn-primary px-6 py-3 rounded-xl font-bold" data-i18n="homeFindBtn"><i class="fas fa-map-marker-alt mr-2"></i>Find Nearby</button><button id="aiDemoBtn" class="border border-green-500 px-6 py-3 rounded-xl hover:bg-green-900/50" data-i18n="homeAIBtn"><i class="fas fa-microchip"></i> AI Features Preview</button></div></div></div>
+                <div class="grid md:grid-cols-4 gap-5 text-center"><div class="glass-card p-5 rounded-2xl"><i class="fas fa-robot text-3xl ev-green"></i><p class="text-2xl font-bold mt-2" data-i18n="homeAIEngine">AI Engine</p><p data-i18n="homeAIEngineDesc">Smart scheduling</p></div><div class="glass-card p-5 rounded-2xl"><i class="fas fa-tree text-3xl ev-green"></i><p class="text-2xl font-bold mt-2" data-i18n="homeCarbon">Carbon Saved</p><p>${currentUser ? (currentUser.totalCarbonSaved || 0).toFixed(1) : 0} kg CO₂</p></div><div class="glass-card p-5 rounded-2xl"><i class="fas fa-tachometer-alt text-3xl ev-green"></i><p class="text-2xl font-bold mt-2" data-i18n="homeQueue">Live Queue</p><p data-i18n="homeQueueDesc">Real-time waiting</p></div><div class="glass-card p-5 rounded-2xl"><i class="fas fa-microphone-alt text-3xl ev-green"></i><p class="text-2xl font-bold mt-2" data-i18n="homeVoice">Voice Ready</p><p data-i18n="homeVoiceDesc">Tap mic</p></div></div>
+                <div class="glass-card p-6 rounded-2xl"><h2 class="text-2xl font-bold mb-4" data-i18n="homeAIFeatures"><i class="fas fa-robot ev-green mr-2"></i>🤖 AI-Powered Features (Active)</h2><div class="grid md:grid-cols-4 gap-4"><div class="bg-black/30 p-4 rounded-xl"><i class="fas fa-brain ev-green text-xl"></i><p class="font-bold" data-i18n="homeAIRecommend">Recommendation Engine</p><small data-i18n="homeAIRecommendDesc">Personalized station picks</small></div><div class="bg-black/30 p-4 rounded-xl"><i class="fas fa-tags ev-green text-xl"></i><p class="font-bold" data-i18n="homeAIPricing">Dynamic Pricing</p><small data-i18n="homeAIPricingDesc">Real-time surge</small></div><div class="bg-black/30 p-4 rounded-xl"><i class="fas fa-route ev-green text-xl"></i><p class="font-bold" data-i18n="homeAIRoute">Route Planner</p><small data-i18n="homeAIRouteDesc">Optimal EV routing</small></div><div class="bg-black/30 p-4 rounded-xl"><i class="fas fa-chart-line ev-green text-xl"></i><p class="font-bold" data-i18n="homeAIAnalytics">Live Analytics</p><small data-i18n="homeAIAnalyticsDesc">Admin dashboard</small></div></div></div>
+                <div class="grid md:grid-cols-2 gap-8"><div class="glass-card p-6 rounded-2xl text-center"><i class="fas fa-mobile-alt text-5xl ev-green mb-3"></i><h3 class="text-xl font-bold" data-i18n="homeQR">QR Check-in</h3><p data-i18n="homeQRDesc">Scan & charge seamlessly</p></div><div class="glass-card p-6 rounded-2xl"><i class="fas fa-charging-station ev-green text-3xl mb-2"></i><h3 class="text-xl font-bold" data-i18n="homeQueueSystem">Queue System</h3><p data-i18n="homeQueueSystemDesc">Join virtual queue when full → auto notification</p></div></div>
+            </div>`;
+        }
+
+        // ============================================================
+        //  STATION FINDER
+        // ============================================================
+        function renderStationFinder() {
+            return `<div><h2 class="text-3xl font-bold mb-3" data-i18n="finderTitle"><i class="fas fa-map-marked-alt ev-green"></i> Nearby EV Stations</h2><div class="grid lg:grid-cols-3 gap-6"><div class="lg:col-span-2"><div id="finderMap" class="map-container"></div><div class="mt-4 flex flex-wrap gap-2"><button data-filter="all" class="filterBtn bg-gray-800 px-4 py-2 rounded-full text-sm hover:bg-green-700" data-i18n="finderAll">All</button><button data-filter="CCS" class="filterBtn bg-gray-800 px-4 py-2 rounded-full text-sm" data-i18n="finderCCS">CCS/DC</button><button data-filter="Type 2" class="filterBtn bg-gray-800 px-4 py-2 rounded-full text-sm" data-i18n="finderType2">Type 2</button><button id="sortByDistance" class="bg-green-900 px-4 py-2 rounded-full text-sm"><i class="fas fa-arrow-down-wide-short"></i> <span data-i18n="finderDistance">Distance</span></button></div></div><div class="glass-card p-4 rounded-2xl"><h3 class="font-bold text-xl mb-2" data-i18n="finderLive">📍 Live Stations (Dynamic Price)</h3><div id="stationsList" class="space-y-3 max-h-[420px] overflow-y-auto pr-1"></div></div></div></div>`;
+        }
+
+        function initFinderMap() {
+            if (!leafletMap) { leafletMap = L.map('finderMap').setView([40.7128, -74.006], 12);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(leafletMap); }
+            navigator.geolocation.getCurrentPosition(pos => { leafletMap.setView([pos.coords.latitude, pos.coords
+                    .longitude], 13);
+                updateStationMarkers(pos.coords.latitude, pos.coords.longitude); }, () => updateStationMarkers(40.7128,
+                -74.006));
+            updateStationMarkers(40.7128, -74.006);
+            document.getElementById('sortByDistance')?.addEventListener('click', () => { navigator.geolocation
+                    .getCurrentPosition(p => updateStationMarkers(p.coords.latitude, p.coords.longitude), () =>
+                    updateStationMarkers(40.7128, -74.006)); });
+        }
+
+        function updateStationMarkers(lat, lng) {
+            if (!leafletMap) return;
+            mapMarkers.forEach(m => leafletMap.removeLayer(m));
+            let stations = getStations().map(s => ({ ...s, distance: getDistance(lat, lng, s.lat, s.lng), price: getDynamicPrice(
+                    s) })).sort((a, b) => a.distance - b.distance);
+            document.getElementById('stationsList').innerHTML = stations.map(s =>
+                `<div class="glass-card p-3 rounded-xl flex justify-between items-center"><div><p class="font-bold">${s.name}</p><p class="text-xs">${s.chargerType} | 💵 $${s.price}/h | 📍 ${s.distance.toFixed(1)}km | 🚦 Queue: ${s.queueSize}</p><p class="text-green-400"><i class="fas fa-bolt"></i> ${s.availableNow}/${s.totalSpots} free</p></div><button onclick="bookStationById('${s.id}')" class="bg-green-800 hover:bg-green-700 px-4 py-1.5 rounded-lg text-sm" data-i18n="finderBook">Book</button></div>`
+                ).join('');
+            stations.forEach(s => { let m = L.marker([s.lat, s.lng]).addTo(leafletMap).bindPopup(
+                    `<b>${s.name}</b><br>💰 $${s.price}/hr<br>🕒 ${s.availableNow} slots left<br><button onclick="bookStationById('${s.id}')">Book</button>`
+                    );
+                mapMarkers.push(m); });
+        }
+
+        function getDistance(lat1, lon1, lat2, lon2) { const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(
+                dLon / 2) ** 2; return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); }
+        window.bookStationById = (id) => { localStorage.setItem('temp_booking_station', id);
+            renderPage('booking'); };
+
+        // ============================================================
+        //  BOOKING PAGE
+        // ============================================================
+        function renderBookingPage() {
+            const stations = getStations().map(s => ({ ...s, price: getDynamicPrice(s) }));
+            const preselected = localStorage.getItem('temp_booking_station');
+            return `<div class="glass-card p-6 rounded-2xl max-w-3xl mx-auto"><h2 class="text-2xl font-bold mb-5" data-i18n="bookingTitle"><i class="fas fa-calendar-check ev-green"></i> Smart Slot + Queue + QR</h2><div class="space-y-4"><select id="stationSelect" class="w-full p-3 bg-gray-800 rounded-lg">${stations.map(s => `<option value="${s.id}" ${preselected === s.id ? 'selected' : ''}>${s.name} ($${s.price}/h) - ${s.availableNow} spots</option>`).join('')}</select><input type="date" id="bookingDate" class="w-full p-3 bg-gray-800 rounded-lg" min="${new Date().toISOString().split('T')[0]}"><select id="timeSlot" class="w-full p-3 bg-gray-800 rounded-lg"><option>08:00-09:00</option><option>10:00-11:00</option><option>12:00-13:00</option><option>14:00-15:00</option><option>16:00-17:00</option><option>18:00-19:00</option></select><button id="checkAvailBtn" class="bg-gray-700 w-full py-2 rounded-lg" data-i18n="bookingCheck"><i class="fas fa-sync-alt"></i> Check Live Availability</button><div id="availMsg" class="text-center text-sm font-medium"></div><div id="aiSuggestion" class="bg-green-900/30 p-3 rounded-lg text-xs"></div><button id="confirmBookingBtn" class="btn-primary w-full py-3 rounded-xl font-bold mt-3" data-i18n="bookingConfirm">Confirm Booking & Get QR</button><button id="joinQueueBtn" class="bg-yellow-700 w-full py-2 rounded-lg mt-2" data-i18n="bookingQueue">Join Queue if Full</button></div><div id="qrResult" class="mt-6 text-center"></div><div id="bookingDownloadSection" class="mt-4 text-center"></div><div id="checkinSection" class="mt-4 text-center"><button id="simulateCheckin" class="bg-blue-800 px-4 py-2 rounded-lg text-sm" data-i18n="bookingSimCheckin">Simulate QR Check-in</button></div></div>`;
+        }
+
+        function attachBookingEvents() {
+            const checkBtn = document.getElementById('checkAvailBtn'),
+                confirmBtn = document.getElementById('confirmBookingBtn'),
+                joinQueueBtn = document.getElementById('joinQueueBtn');
+            if (checkBtn) checkBtn.onclick = () => { const stationId = document.getElementById('stationSelect').value,
+                    date = document.getElementById('bookingDate').value,
+                    slot = document.getElementById('timeSlot').value;
+                const bookings = getBookings();
+                const taken = bookings.some(b => b.stationId === stationId && b.date === date && b.timeSlot === slot && b
+                    .status !== 'cancelled');
+                const station = getStations().find(s => s.id === stationId);
+                const dynamicPrice = getDynamicPrice(station);
+                const msg = taken ?
+                    `<span class="text-red-400" data-i18n="bookingAvailTaken">❌ Slot already occupied</span>` :
+                    `<span class="text-green-400" data-i18n="bookingAvailFree">✅ Slot free! Dynamic price: $${dynamicPrice}/h</span>`;
+                document.getElementById('availMsg').innerHTML = msg;
+                if (!taken) {
+                    document.getElementById('aiSuggestion').innerHTML =
+                        `${t('bookingAIRecommend')} ${station.trafficFactor > 0.7 ? 'after 7 PM' : 'now'}. Estimated carbon saving: ~4.2kg per charge.`;
+                }
+                applyTranslations();
+            };
+            if (confirmBtn) confirmBtn.onclick = () => {
+                if (!currentUser) { alert('Please login');
+                    showAuthModal(); return; }
+                const stationId = document.getElementById('stationSelect').value,
+                    date = document.getElementById('bookingDate').value,
+                    slot = document.getElementById('timeSlot').value;
+                const station = getStations().find(s => s.id === stationId);
+                if (!station) return;
+                const dynamicPrice = getDynamicPrice(station);
+                const bookings = getBookings();
+                if (bookings.some(b => b.stationId === stationId && b.date === date && b.timeSlot === slot && b.status !==
+                        'cancelled')) { alert('Slot already booked!'); return; }
+                const newBooking = { id: 'bk' + Date.now(), userId: currentUser.id, stationId, stationName: station
+                        .name, date, timeSlot: slot, cost: dynamicPrice, status: 'active', kwh: 25 };
+                bookings.push(newBooking);
+                saveBookings(bookings);
+                const carbonSaved = addCarbonSavings(currentUser.id, 25);
+                addNotification(currentUser.id,
+                    `✅ Booking confirmed at ${station.name} on ${date} ${slot}`);
+
+                // Store last booking for download
+                lastBookingData = { ...newBooking, carbonSaved, userName: currentUser.name };
+
+                // Generate QR
+                const qrText =
+                    `EcoCharge Booking ID: ${newBooking.id}\nStation: ${station.name}\nTime: ${date} ${slot}\nUser: ${currentUser.name}`;
+                lastBookingQRText = qrText;
+                const qrContainer = document.getElementById('qrResult');
+                qrContainer.innerHTML =
+                    `<div id="qrCodeDisplay" style="display:flex; justify-content:center; margin-bottom:10px;"></div><p class="text-green-300 mt-2" data-i18n="bookingQR">✅ Booking confirmed! Scan QR at station.</p>`;
+                const qrDiv = document.getElementById('qrCodeDisplay');
+                qrDiv.innerHTML = '';
+                new QRCode(qrDiv, { text: qrText, width: 150, height: 150 });
+
+                // Show download section
+                const downloadSection = document.getElementById('bookingDownloadSection');
+                downloadSection.innerHTML =
+                    `<div class="booking-download-card"><button id="downloadBookingBtn" class="bg-green-700 hover:bg-green-600 px-6 py-3 rounded-xl font-bold transition" data-i18n="downloadBtn">📥 Download Booking Details</button></div>`;
+                document.getElementById('downloadBookingBtn').onclick = () => downloadBookingDetails();
+
+                refreshStationAvailability();
+                applyTranslations();
+            };
+            if (joinQueueBtn) joinQueueBtn.onclick = () => { if (!currentUser) { alert('Login first'); return; }
+                const stationId = document.getElementById('stationSelect').value;
+                const station = getStations().find(s => s.id === stationId);
+                if (station.availableNow === 0) { joinQueue(stationId, currentUser.id);
+                    alert(t('bookingQueueJoined')); } else { alert(t('bookingNoSlot')); } };
+            document.getElementById('simulateCheckin')?.addEventListener('click', () => {
+                if (lastBookingQRText) {
+                    alert(
+                        `✅ QR Check-in simulated: Your session started!\n${lastBookingQRText.split('\n')[0]}\nCarbon tracking active.`
+                        );
+                } else {
+                    alert('Please make a booking first to get a QR code.');
+                }
+            });
+        }
+
+        // ============================================================
+        //  DOWNLOAD BOOKING DETAILS
+        // ============================================================
+        function downloadBookingDetails() {
+            if (!lastBookingData) {
+                alert('No booking data available. Please make a booking first.');
+                return;
+            }
+            const d = lastBookingData;
+            const lines = [
+                '═══════════════════════════════════════════',
+                '  ⚡ ECOCHARGE PRO - BOOKING DETAILS',
+                '═══════════════════════════════════════════',
+                '',
+                `  ${t('downloadID')}: ${d.id}`,
+                `  ${t('downloadStation')}: ${d.stationName}`,
+                `  ${t('downloadDate')}: ${d.date}`,
+                `  ${t('downloadTime')}: ${d.timeSlot}`,
+                `  ${t('downloadUser')}: ${d.userName || currentUser?.name || 'Guest'}`,
+                `  ${t('downloadCost')}: $${d.cost.toFixed(2)}`,
+                `  ${t('downloadStatus')}: ✅ Confirmed`,
+                `  ${t('downloadCarbon')}: ${(d.carbonSaved || 0).toFixed(2)} kg CO₂`,
+                '',
+                '───────────────────────────────────────────',
+                `  ${t('downloadThankYou')}`,
+                '───────────────────────────────────────────',
+                `  ${new Date().toLocaleString()}`,
+                '═══════════════════════════════════════════'
+            ];
+            const content = lines.join('\n');
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `EcoCharge_Booking_${d.id}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('✅ Booking details downloaded!');
+        }
+
+        // ============================================================
+        //  ROUTE PLANNER
+        // ============================================================
+        function renderRoutePlanner() {
+            return `<div class="glass-card p-6 rounded-2xl"><h2 class="text-2xl font-bold" data-i18n="routeTitle"><i class="fas fa-route ev-green"></i> EV Route Planner</h2><p class="mb-4" data-i18n="routeSub">Plan your trip with optimal charging stops (AI suggested)</p><div class="grid md:grid-cols-2 gap-4"><input type="text" id="startLoc" placeholder="${t('routeStart')}" class="bg-gray-800 p-3 rounded"><input type="text" id="endLoc" placeholder="${t('routeEnd')}" class="bg-gray-800 p-3 rounded"><button id="planRoute" class="btn-primary py-2 rounded" data-i18n="routePlan">Plan Route</button></div><div id="routeResult" class="mt-6 text-sm"></div><div id="mapRoute" class="map-container mt-4"></div></div>`;
+        }
+
+        function attachRoutePlanner() {
+            document.getElementById('planRoute')?.addEventListener('click', () => { const start = document.getElementById(
+                    'startLoc').value;
+                const end = document.getElementById('endLoc').value; if (!start || !end) { alert(
+                    'Enter both locations'); return; }
+                const stations = getStations();
+                const nearest = stations[0];
+                document.getElementById('routeResult').innerHTML =
+                    `<i class="fas fa-car"></i> Suggested route: Start → ${nearest.name} (charge 20min) → Destination. Approx distance 12km, CO₂ saved: 2.8kg. AI optimized charging stop.`;
+                if (leafletMap) leafletMap.remove();
+                const routeMap = L.map('mapRoute').setView([40.7128, -74.006], 10);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(routeMap);
+                L.marker([40.7128, -74.006]).addTo(routeMap).bindPopup('Start');
+                L.marker([40.758, -73.9855]).addTo(routeMap).bindPopup('Charging Stop');
+                L.marker([40.7282, -73.7949]).addTo(routeMap).bindPopup('Destination');
+                applyTranslations(); });
+        }
+
+        // ============================================================
+        //  DASHBOARD
+        // ============================================================
+        function renderDashboard() {
+            if (!currentUser) return `<div class="glass-card p-8 text-center"><p class="text-xl">🔒 Please login to access dashboard</p><button onclick="showAuthModal()" class="btn-primary mt-4 px-6 py-2 rounded-full">Login</button></div>`;
+            const bookings = getBookings().filter(b => b.userId === currentUser.id);
+            const active = bookings.filter(b => b.status === 'active');
+            const carbonEntries = JSON.parse(localStorage.getItem(STORAGE.CARBON)).filter(c => c.userId === currentUser
+            .id);
+            const totalCarbon = carbonEntries.reduce((s, c) => s + c.amount, 0);
+            const queues = JSON.parse(localStorage.getItem(STORAGE.QUEUES));
+            const userQueues = Object.entries(queues).filter(([_, q]) => q.includes(currentUser.id)).map(([sid]) =>
+                getStations().find(s => s.id === sid)?.name);
+            const favoriteStationId = getFav(currentUser.id)[0];
+            const recommendedStation = favoriteStationId ? getStations().find(s => s.id === favoriteStationId) :
+            getStations()[0];
+            return `<div class="grid md:grid-cols-3 gap-6"><div class="md:col-span-2 space-y-5"><div class="glass-card p-5"><h3 class="text-xl font-bold" data-i18n="dashActive"><i class="fas fa-plug ev-green"></i> Active Bookings</h3>${active.map(b=>`<div class="flex justify-between border-l-4 border-green-500 pl-3 my-2"><div>${b.stationName} - ${b.date} ${b.timeSlot}</div><button onclick="cancelBooking('${b.id}')" class="text-red-400 text-sm" data-i18n="dashCancel"><i class="fas fa-times-circle"></i> Cancel</button></div>`).join('') || `<p class="text-gray-400" data-i18n="dashNoActive">No active bookings</p>`}</div><div class="glass-card p-5"><h3 class="text-xl" data-i18n="dashCarbon"><i class="fas fa-leaf"></i> Carbon Tracking</h3><p>🌱 <span data-i18n="dashCarbonTotal">Total CO₂ saved: </span><strong class="ev-green">${totalCarbon.toFixed(2)} kg</strong> (<span data-i18n="dashTrees">equivalent to planting </span>${(totalCarbon/2.5).toFixed(1)}<span data-i18n="dashTreesEnd"> trees</span>)</p><canvas id="carbonChart" height="120"></canvas></div><div class="glass-card p-5"><h3 class="text-xl" data-i18n="dashAIRecommend"><i class="fas fa-microchip"></i> AI Recommendation Engine</h3><p>🔋 <span data-i18n="dashAIRecommendText">Based on your driving patterns, we recommend </span><strong>${recommendedStation?.name}</strong> <span data-i18n="dashAIRecommendPrice">for your next charge. Estimated price: $</span>${recommendedStation ? getDynamicPrice(recommendedStation) : '0.50'}/h.</p><button onclick="bookStationById('${recommendedStation?.id}')" class="bg-green-800 px-4 py-1 rounded text-sm mt-2" data-i18n="dashBookRecommended">Book Recommended</button></div></div><div class="glass-card p-5 space-y-4"><div><i class="fas fa-wallet text-xl ev-green"></i> <span data-i18n="dashWallet">Wallet: $</span>${currentUser.wallet.toFixed(2)}</div><div><i class="fas fa-hourglass-half"></i> <span data-i18n="dashQueueStatus">Queue Status: </span>${userQueues.length ? `${t('dashQueueText')} ${userQueues.join(', ')}` : t('dashNoQueues')}</div><div><i class="fas fa-chart-line"></i> <span data-i18n="dashPricingAlert">Dynamic Pricing Alert: Prices adjust every 15min based on demand.</span></div><div><i class="fas fa-qrcode"></i> <button id="showLastQR" class="text-green-400" data-i18n="dashLastQR">Show last booking QR</button></div></div></div>`;
+        }
+
+        function attachDashboardEvents() {
+            if (document.getElementById('carbonChart')) {
+                new Chart(document.getElementById('carbonChart'), { type: 'bar', data: { labels: ['Week1', 'Week2',
+                            'Week3'
+                        ], datasets: [{ label: 'CO₂ saved (kg)', data: [5.2, 7.8, 6.4], backgroundColor: '#4ade80' }] } });
+            }
+            document.getElementById('showLastQR')?.addEventListener('click', () => {
+                if (lastBookingQRText) {
+                    alert(`📱 Your last booking QR details:\n${lastBookingQRText}`);
+                } else {
+                    alert('No recent booking found. Make a booking to see QR.');
+                }
+            });
+        }<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>⚡ EcoCharge Pro | AI-Powered EV Charging Network</title>
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js">
+    </script>
+    <style>
+        body {
+            background: #0a120e;
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+        .glass-card {
+            background: rgba(18, 28, 20, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+            transition: all 0.2s ease;
+        }
+        .glass-card:hover {
+            border-color: #4ade80;
+            box-shadow: 0 8px 25px rgba(74, 222, 128, 0.2);
+            transform: translateY(-2px);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #22c55e, #15803d);
+            transition: 0.2s;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px #15803d;
+        }
+        .ev-green {
+            color: #4ade80;
+        }
+        .map-container {
+            height: 380px;
+            border-radius: 1.5rem;
+            overflow: hidden;
+            border: 1px solid #2d5a2e;
+        }
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1a2a1a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4ade80;
+            border-radius: 10px;
+        }
+        .animate-glow {
+            animation: glow 2s infinite alternate;
+        }
+        @keyframes glow {
+            from {
+                text-shadow: 0 0 2px #4ade80;
+            }
+            to {
+                text-shadow: 0 0 10px #4ade80;
+            }
+        }
+        .voice-btn {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            z-index: 1000;
+            background: #22c55e;
+            border-radius: 50%;
+            width: 55px;
+            height: 55px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.5);
+            transition: 0.2s;
+        }
+        .voice-btn:hover {
+            transform: scale(1.05);
+            background: #15803d;
+        }
+        .listening {
+            animation: pulseMic 1.5s infinite;
+        }
+        @keyframes pulseMic {
+            0% {
+                box-shadow: 0 0 0 0 #4ade80;
+            }
+            100% {
+                box-shadow: 0 0 0 15px transparent;
+            }
+        }
+        #qrCodeDisplay canvas,
+        #qrCodeDisplay img {
+            margin: 0 auto;
+            display: block;
+            background: white;
+            padding: 8px;
+            border-radius: 12px;
+        }
+        .lang-btn {
+            background: transparent;
+            border: 1px solid #4ade80;
+            color: #4ade80;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .lang-btn:hover {
+            background: #4ade80;
+            color: #0a120e;
+        }
+        .lang-btn.active {
+            background: #4ade80;
+            color: #0a120e;
+        }
+        .feedback-rating {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            font-size: 2rem;
+            cursor: pointer;
+        }
+        .feedback-rating span {
+            transition: 0.2s;
+        }
+        .feedback-rating span:hover,
+        .feedback-rating span.active {
+            transform: scale(1.2);
+            color: #fbbf24;
+        }
+        .toast {
+            position: fixed;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1a2a1a;
+            border: 1px solid #4ade80;
+            padding: 12px 24px;
+            border-radius: 12px;
+            z-index: 9999;
+            backdrop-filter: blur(8px);
+            font-weight: 500;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+            display: none;
+            max-width: 90%;
+            text-align: center;
+        }
+        .toast.show {
+            display: block;
+            animation: fadeUp 0.3s ease;
+        }
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+        .booking-download-card {
+            background: rgba(34, 197, 94, 0.08);
+            border: 1px solid #4ade80;
+            border-radius: 16px;
+            padding: 16px;
+            margin-top: 12px;
+        }
+        /* Kannada font support */
+        .lang-kn {
+            font-family: 'Noto Sans Kannada', 'Kannada MN', 'Kannada Sangam MN', sans-serif;
+        }
+    </style>
+</head>
+<body class="text-white">
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <nav class="bg-black/80 backdrop-blur-lg border-b border-green-800/50 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-3 flex-wrap gap-2">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-charging-station text-3xl text-green-400 animate-pulse"></i>
+                    <span class="text-2xl font-bold bg-gradient-to-r from-green-300 to-emerald-500 bg-clip-text text-transparent" data-i18n="appName">EcoCharge Pro</span>
+                </div>
+                <div class="hidden md:flex space-x-5" id="nav-links">
+                    <a href="#" data-page="home" class="nav-link text-gray-300 hover:text-green-400 transition" data-i18n="navHome">🏠 Home</a>
+                    <a href="#" data-page="finder" class="nav-link text-gray-300 hover:text-green-400 transition" data-i18n="navFinder">📍 Station Finder</a>
+                    <a href="#" data-page="booking" class="nav-link text-gray-300 hover:text-green-400 transition" data-i18n="navBooking">📅 Slot Booking</a>
+                    <a href="#" data-page="routeplanner" class="nav-link text-gray-300 hover:text-green-400 transition" data-i18n="navRoute">🗺️ Route Planner</a>
+                    <a href="#" data-page="dashboard" class="nav-link text-gray-300 hover:text-green-400 transition" data-i18n="navDashboard">📊 Dashboard</a>
+                    <a href="#" data-page="feedback" class="nav-link text-gray-300 hover:text-green-400 transition" data-i18n="navFeedback">💬 Feedback</a>
+                    <a href="#" data-page="admin" class="nav-link text-gray-300 hover:text-green-400 transition hidden" id="adminNav" data-i18n="navAdmin">⚙️ Admin</a>
+                </div>
+                <div class="flex items-center space-x-3 flex-wrap">
+                    <span id="userGreeting" class="text-sm text-green-300 font-medium"></span>
+                    <button id="authBtn" class="bg-green-700 hover:bg-green-600 px-5 py-2 rounded-full text-sm font-semibold transition shadow-md" data-i18n="authBtn">Login</button>
+                    <button id="langToggle" class="lang-btn" title="Toggle Language / ಭಾಷೆ ಬದಲಿಸಿ">EN / ಕ</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 py-8" id="app-content"></main>
+
+    <div id="voiceBtn" class="voice-btn" title="Voice Command / ಧ್ವನಿ ಆಜ್ಞೆ">
+        <i class="fas fa-microphone-alt text-2xl text-white"></i>
+    </div>
+
+    <footer class="border-t border-green-900/40 mt-20 py-6 text-center text-gray-400 text-sm">
+        <p data-i18n="footer">⚡ EcoCharge Pro — AI-Ready Network | Real-time availability | Smart Charging Ecosystem | Carbon Tracker</p>
+    </footer>
+
+    <script>
+        // ============================================================
+        //  🌐 TRANSLATION SYSTEM (English / Kannada)
+        // ============================================================
+        const TRANSLATIONS = {
+            en: {
+                appName: 'EcoCharge Pro',
+                navHome: '🏠 Home',
+                navFinder: '📍 Station Finder',
+                navBooking: '📅 Slot Booking',
+                navRoute: '🗺️ Route Planner',
+                navDashboard: '📊 Dashboard',
+                navFeedback: '💬 Feedback',
+                navAdmin: '⚙️ Admin',
+                authBtn: 'Login',
+                footer: '⚡ EcoCharge Pro — AI-Ready Network | Real-time availability | Smart Charging Ecosystem | Carbon Tracker',
+                // Home
+                homeTitle: 'Drive Pure.<br>Charge <span class="ev-green animate-glow">Intelligently</span>.',
+                homeSub: 'AI Recommendations · Dynamic Pricing · Carbon Tracking · Voice Control',
+                homeFindBtn: 'Find Nearby',
+                homeAIBtn: 'AI Features Preview',
+                homeAIEngine: 'AI Engine',
+                homeAIEngineDesc: 'Smart scheduling',
+                homeCarbon: 'Carbon Saved',
+                homeQueue: 'Live Queue',
+                homeQueueDesc: 'Real-time waiting',
+                homeVoice: 'Voice Ready',
+                homeVoiceDesc: 'Tap mic',
+                homeAIFeatures: '🤖 AI-Powered Features (Active)',
+                homeAIRecommend: 'Recommendation Engine',
+                homeAIRecommendDesc: 'Personalized station picks',
+                homeAIPricing: 'Dynamic Pricing',
+                homeAIPricingDesc: 'Real-time surge',
+                homeAIRoute: 'Route Planner',
+                homeAIRouteDesc: 'Optimal EV routing',
+                homeAIAnalytics: 'Live Analytics',
+                homeAIAnalyticsDesc: 'Admin dashboard',
+                homeQR: 'QR Check-in',
+                homeQRDesc: 'Scan & charge seamlessly',
+                homeQueueSystem: 'Queue System',
+                homeQueueSystemDesc: 'Join virtual queue when full → auto notification',
+                // Finder
+                finderTitle: 'Nearby EV Stations',
+                finderAll: 'All',
+                finderCCS: 'CCS/DC',
+                finderType2: 'Type 2',
+                finderDistance: 'Distance',
+                finderLive: '📍 Live Stations (Dynamic Price)',
+                finderBook: 'Book',
+                // Booking
+                bookingTitle: 'Smart Slot + Queue + QR',
+                bookingSelect: 'Select Station',
+                bookingDate: 'Date',
+                bookingTime: 'Time Slot',
+                bookingCheck: 'Check Live Availability',
+                bookingAvailFree: '✅ Slot free! Dynamic price: $',
+                bookingAvailTaken: '❌ Slot already occupied',
+                bookingAIRecommend: '🤖 AI Recommendation: Based on current traffic, best time to charge is ',
+                bookingConfirm: 'Confirm Booking & Get QR',
+                bookingQueue: 'Join Queue if Full',
+                bookingQR: 'Booking confirmed! Scan QR at station.',
+                bookingDownload: '📥 Download Booking',
+                bookingSimCheckin: 'Simulate QR Check-in',
+                bookingNoSlot: 'Station has slots available. Please book directly.',
+                bookingQueueJoined: 'You joined the queue! You will be notified when a slot opens.',
+                // Route
+                routeTitle: 'EV Route Planner',
+                routeSub: 'Plan your trip with optimal charging stops (AI suggested)',
+                routeStart: 'Start location (lat,lng or address)',
+                routeEnd: 'Destination (lat,lng or address)',
+                routePlan: 'Plan Route',
+                // Dashboard
+                dashActive: 'Active Bookings',
+                dashCancel: 'Cancel',
+                dashNoActive: 'No active bookings',
+                dashCarbon: 'Carbon Tracking',
+                dashCarbonTotal: 'Total CO₂ saved: ',
+                dashTrees: 'equivalent to planting ',
+                dashTreesEnd: ' trees',
+                dashAIRecommend: 'AI Recommendation Engine',
+                dashAIRecommendText: 'Based on your driving patterns, we recommend ',
+                dashAIRecommendPrice: 'for your next charge. Estimated price: $',
+                dashBookRecommended: 'Book Recommended',
+                dashWallet: 'Wallet: $',
+                dashQueueStatus: 'Queue Status: ',
+                dashNoQueues: 'No active queues',
+                dashQueueText: 'You are in queue for: ',
+                dashPricingAlert: 'Dynamic Pricing Alert: Prices adjust every 15min based on demand.',
+                dashLastQR: 'Show last booking QR',
+                // Admin
+                adminTitle: '🛡️ Live Analytics Dashboard',
+                adminRevenue: 'Revenue',
+                adminQueueSystem: 'Queue System',
+                adminTotalQueue: 'Total in queues: ',
+                adminUtilization: 'Utilization',
+                adminManageStations: 'Manage Stations & Dynamic Pricing',
+                adminAddStation: '+ Add Station',
+                adminReset: 'Reset System',
+                adminDelete: 'Delete',
+                adminNamePlaceholder: 'Name',
+                adminPricePlaceholder: 'Base price',
+                // Feedback
+                feedbackTitle: '💬 Share Your Feedback',
+                feedbackSub: 'We value your opinion. Help us improve EcoCharge Pro.',
+                feedbackName: 'Your Name',
+                feedbackEmail: 'Your Email (optional)',
+                feedbackRating: 'Rate your experience',
+                feedbackComment: 'Your Feedback',
+                feedbackSubmit: 'Submit Feedback',
+                feedbackThanks: 'Thank you for your valuable feedback! 🙏',
+                feedbackPlaceholder: 'Tell us about your experience...',
+                // Voice
+                voiceHelp: '🎤 Voice commands: "Find stations", "Book slot", "Dashboard", "Route planner", "Feedback", "Home", "Help"',
+                // Booking download
+                downloadTitle: '📄 Booking Details',
+                downloadStation: 'Station',
+                downloadTime: 'Time',
+                downloadUser: 'User',
+                downloadCost: 'Cost',
+                downloadStatus: 'Status',
+                downloadCarbon: 'Carbon Saved',
+                downloadDate: 'Date',
+                downloadID: 'Booking ID',
+                downloadThankYou: 'Thank you for choosing EcoCharge Pro!',
+                downloadBtn: '📥 Download Booking Details',
+            },
+            kn: {
+                appName: 'ಇಕೋಚಾರ್ಜ್ ಪ್ರೊ',
+                navHome: '🏠 ಮುಖಪುಟ',
+                navFinder: '📍 ನಿಲ್ದಾಣ ಹುಡುಕಿ',
+                navBooking: '📅 ಸ್ಲಾಟ್ ಬುಕಿಂಗ್',
+                navRoute: '🗺️ ಮಾರ್ಗ ಯೋಜಕ',
+                navDashboard: '📊 ಡ್ಯಾಶ್ಬೋರ್ಡ್',
+                navFeedback: '💬 ಪ್ರತಿಕ್ರಿಯೆ',
+                navAdmin: '⚙️ ನಿರ್ವಾಹಕ',
+                authBtn: 'ಲಾಗಿನ್',
+                footer: '⚡ ಇಕೋಚಾರ್ಜ್ ಪ್ರೊ — ಎಐ-ಸಿದ್ಧ ಜಾಲ | ನೈಜ-ಸಮಯ ಲಭ್ಯತೆ | ಸ್ಮಾರ್ಟ್ ಚಾರ್ಜಿಂಗ್ ಪರಿಸರ | ಇಂಗಾಲ ಟ್ರ್ಯಾಕರ್',
+                homeTitle: 'ಶುದ್ಧ ಚಾಲನೆ.<br><span class="ev-green animate-glow">ಬುದ್ಧಿವಂತಿಕೆಯಿಂದ</span> ಚಾರ್ಜ್ ಮಾಡಿ.',
+                homeSub: 'ಎಐ ಶಿಫಾರಸುಗಳು · ಡೈನಾಮಿಕ್ ಬೆಲೆ · ಇಂಗಾಲ ಟ್ರ್ಯಾಕಿಂಗ್ · ಧ್ವನಿ ನಿಯಂತ್ರಣ',
+                homeFindBtn: 'ಹತ್ತಿರ ಹುಡುಕಿ',
+                homeAIBtn: 'ಎಐ ವೈಶಿಷ್ಟ್ಯಗಳು ಮುನ್ನೋಟ',
+                homeAIEngine: 'ಎಐ ಎಂಜಿನ್',
+                homeAIEngineDesc: 'ಸ್ಮಾರ್ಟ್ ವೇಳಾಪಟ್ಟಿ',
+                homeCarbon: 'ಇಂಗಾಲ ಉಳಿತಾಯ',
+                homeQueue: 'ಲೈವ್ ಕ್ಯೂ',
+                homeQueueDesc: 'ನೈಜ-ಸಮಯ ಕಾಯುವಿಕೆ',
+                homeVoice: 'ಧ್ವನಿ ಸಿದ್ಧ',
+                homeVoiceDesc: 'ಮೈಕ್ ಒತ್ತಿರಿ',
+                homeAIFeatures: '🤖 ಎಐ-ಚಾಲಿತ ವೈಶಿಷ್ಟ್ಯಗಳು (ಸಕ್ರಿಯ)',
+                homeAIRecommend: 'ಶಿಫಾರಸು ಎಂಜಿನ್',
+                homeAIRecommendDesc: 'ವೈಯಕ್ತಿಕ ನಿಲ್ದಾಣ ಆಯ್ಕೆ',
+                homeAIPricing: 'ಡೈನಾಮಿಕ್ ಬೆಲೆ',
+                homeAIPricingDesc: 'ನೈಜ-ಸಮಯ ಏರಿಕೆ',
+                homeAIRoute: 'ಮಾರ್ಗ ಯೋಜಕ',
+                homeAIRouteDesc: 'ಅತ್ಯುತ್ತಮ ಇವಿ ಮಾರ್ಗ',
+                homeAIAnalytics: 'ಲೈವ್ ವಿಶ್ಲೇಷಣೆ',
+                homeAIAnalyticsDesc: 'ನಿರ್ವಾಹಕ ಡ್ಯಾಶ್ಬೋರ್ಡ್',
+                homeQR: 'ಕ್ಯೂಆರ್ ಚೆಕ್-ಇನ್',
+                homeQRDesc: 'ಸ್ಕ್ಯಾನ್ ಮಾಡಿ ಚಾರ್ಜ್ ಮಾಡಿ',
+                homeQueueSystem: 'ಕ್ಯೂ ವ್ಯವಸ್ಥೆ',
+                homeQueueSystemDesc: 'ತುಂಬಿದಾಗ ವರ್ಚುವಲ್ ಕ್ಯೂ ಸೇರಿ → ಸ್ವಯಂ ಸೂಚನೆ',
+                finderTitle: 'ಹತ್ತಿರದ ಇವಿ ನಿಲ್ದಾಣಗಳು',
+                finderAll: 'ಎಲ್ಲಾ',
+                finderCCS: 'ಸಿಸಿಎಸ್/ಡಿಸಿ',
+                finderType2: 'ಟೈಪ್ 2',
+                finderDistance: 'ದೂರ',
+                finderLive: '📍 ಲೈವ್ ನಿಲ್ದಾಣಗಳು (ಡೈನಾಮಿಕ್ ಬೆಲೆ)',
+                finderBook: 'ಬುಕ್',
+                bookingTitle: 'ಸ್ಮಾರ್ಟ್ ಸ್ಲಾಟ್ + ಕ್ಯೂ + ಕ್ಯೂಆರ್',
+                bookingSelect: 'ನಿಲ್ದಾಣ ಆಯ್ಕೆಮಾಡಿ',
+                bookingDate: 'ದಿನಾಂಕ',
+                bookingTime: 'ಸಮಯ ಸ್ಲಾಟ್',
+                bookingCheck: 'ಲೈವ್ ಲಭ್ಯತೆ ಪರಿಶೀಲಿಸಿ',
+                bookingAvailFree: '✅ ಸ್ಲಾಟ್ ಮುಕ್ತವಿದೆ! ಡೈನಾಮಿಕ್ ಬೆಲೆ: $',
+                bookingAvailTaken: '❌ ಸ್ಲಾಟ್ ಈಗಾಗಲೇ ಆಕ್ರಮಿಸಲಾಗಿದೆ',
+                bookingAIRecommend: '🤖 ಎಐ ಶಿಫಾರಸು: ಪ್ರಸ್ತುತ ಸಂಚಾರದ ಆಧಾರದ ಮೇಲೆ, ಚಾರ್ಜ್ ಮಾಡಲು ಉತ್ತಮ ಸಮಯ ',
+                bookingConfirm: 'ಬುಕಿಂಗ್ ದೃಢೀಕರಿಸಿ & ಕ್ಯೂಆರ್ ಪಡೆಯಿರಿ',
+                bookingQueue: 'ತುಂಬಿದ್ದರೆ ಕ್ಯೂ ಸೇರಿ',
+                bookingQR: 'ಬುಕಿಂಗ್ ದೃಢೀಕರಿಸಲಾಗಿದೆ! ನಿಲ್ದಾಣದಲ್ಲಿ ಕ್ಯೂಆರ್ ಸ್ಕ್ಯಾನ್ ಮಾಡಿ.',
+                bookingDownload: '📥 ಬುಕಿಂಗ್ ಡೌನ್ಲೋಡ್',
+                bookingSimCheckin: 'ಕ್ಯೂಆರ್ ಚೆಕ್-ಇನ್ ಅನುಕರಿಸಿ',
+                bookingNoSlot: 'ನಿಲ್ದಾಣದಲ್ಲಿ ಸ್ಲಾಟ್ಗಳು ಲಭ್ಯವಿದೆ. ದಯವಿಟ್ಟು ನೇರವಾಗಿ ಬುಕ್ ಮಾಡಿ.',
+                bookingQueueJoined: 'ನೀವು ಕ್ಯೂ ಸೇರಿದ್ದೀರಿ! ಸ್ಲಾಟ್ ತೆರೆದಾಗ ನಿಮಗೆ ಸೂಚನೆ ನೀಡಲಾಗುವುದು.',
+                routeTitle: 'ಇವಿ ಮಾರ್ಗ ಯೋಜಕ',
+                routeSub: 'ಅತ್ಯುತ್ತಮ ಚಾರ್ಜಿಂಗ್ ನಿಲ್ದಾಣಗಳೊಂದಿಗೆ ನಿಮ್ಮ ಪ್ರಯಾಣವನ್ನು ಯೋಜಿಸಿ (ಎಐ ಸೂಚಿಸಿದ)',
+                routeStart: 'ಪ್ರಾರಂಭ ಸ್ಥಳ (ಅಕ್ಷಾಂಶ,ರೇಖಾಂಶ ಅಥವಾ ವಿಳಾಸ)',
+                routeEnd: 'ಗಮ್ಯಸ್ಥಾನ (ಅಕ್ಷಾಂಶ,ರೇಖಾಂಶ ಅಥವಾ ವಿಳಾಸ)',
+                routePlan: 'ಮಾರ್ಗ ಯೋಜಿಸಿ',
+                dashActive: 'ಸಕ್ರಿಯ ಬುಕಿಂಗ್ಗಳು',
+                dashCancel: 'ರದ್ದುಮಾಡಿ',
+                dashNoActive: 'ಯಾವುದೇ ಸಕ್ರಿಯ ಬುಕಿಂಗ್ಗಳಿಲ್ಲ',
+                dashCarbon: 'ಇಂಗಾಲ ಟ್ರ್ಯಾಕಿಂಗ್',
+                dashCarbonTotal: 'ಒಟ್ಟು CO₂ ಉಳಿತಾಯ: ',
+                dashTrees: 'ಗೆ ಸಮಾನ ',
+                dashTreesEnd: ' ಮರಗಳು',
+                dashAIRecommend: 'ಎಐ ಶಿಫಾರಸು ಎಂಜಿನ್',
+                dashAIRecommendText: 'ನಿಮ್ಮ ಚಾಲನಾ ಮಾದರಿಗಳ ಆಧಾರದ ಮೇಲೆ, ನಾವು ಶಿಫಾರಸು ಮಾಡುತ್ತೇವೆ ',
+                dashAIRecommendPrice: 'ನಿಮ್ಮ ಮುಂದಿನ ಚಾರ್ಜ್ಗೆ. ಅಂದಾಜು ಬೆಲೆ: $',
+                dashBookRecommended: 'ಶಿಫಾರಸು ಬುಕ್ ಮಾಡಿ',
+                dashWallet: 'ವ್ಯಾಲೆಟ್: $',
+                dashQueueStatus: 'ಕ್ಯೂ ಸ್ಥಿತಿ: ',
+                dashNoQueues: 'ಯಾವುದೇ ಸಕ್ರಿಯ ಕ್ಯೂಗಳಿಲ್ಲ',
+                dashQueueText: 'ನೀವು ಇದರ ಕ್ಯೂನಲ್ಲಿದ್ದೀರಿ: ',
+                dashPricingAlert: 'ಡೈನಾಮಿಕ್ ಬೆಲೆ ಎಚ್ಚರಿಕೆ: ಬೆಲೆಗಳು ಬೇಡಿಕೆಯ ಆಧಾರದ ಮೇಲೆ ಪ್ರತಿ 15 ನಿಮಿಷಕ್ಕೆ ಹೊಂದಿಸುತ್ತವೆ.',
+                dashLastQR: 'ಕೊನೆಯ ಬುಕಿಂಗ್ ಕ್ಯೂಆರ್ ತೋರಿಸಿ',
+                adminTitle: '🛡️ ಲೈವ್ ವಿಶ್ಲೇಷಣೆ ಡ್ಯಾಶ್ಬೋರ್ಡ್',
+                adminRevenue: 'ಆದಾಯ',
+                adminQueueSystem: 'ಕ್ಯೂ ವ್ಯವಸ್ಥೆ',
+                adminTotalQueue: 'ಒಟ್ಟು ಕ್ಯೂನಲ್ಲಿ: ',
+                adminUtilization: 'ಬಳಕೆ',
+                adminManageStations: 'ನಿಲ್ದಾಣಗಳು & ಡೈನಾಮಿಕ್ ಬೆಲೆ ನಿರ್ವಹಿಸಿ',
+                adminAddStation: '+ ನಿಲ್ದಾಣ ಸೇರಿಸಿ',
+                adminReset: 'ವ್ಯವಸ್ಥೆ ಮರುಹೊಂದಿಸಿ',
+                adminDelete: 'ಅಳಿಸಿ',
+                adminNamePlaceholder: 'ಹೆಸರು',
+                adminPricePlaceholder: 'ಮೂಲ ಬೆಲೆ',
+                feedbackTitle: '💬 ನಿಮ್ಮ ಪ್ರತಿಕ್ರಿಯೆ ಹಂಚಿಕೊಳ್ಳಿ',
+                feedbackSub: 'ನಿಮ್ಮ ಅಭಿಪ್ರಾಯ ನಮಗೆ ಮುಖ್ಯ. ಇಕೋಚಾರ್ಜ್ ಪ್ರೊ ಸುಧಾರಿಸಲು ಸಹಾಯ ಮಾಡಿ.',
+                feedbackName: 'ನಿಮ್ಮ ಹೆಸರು',
+                feedbackEmail: 'ನಿಮ್ಮ ಇಮೇಲ್ (ಐಚ್ಛಿಕ)',
+                feedbackRating: 'ನಿಮ್ಮ ಅನುಭವವನ್ನು ರೇಟ್ ಮಾಡಿ',
+                feedbackComment: 'ನಿಮ್ಮ ಪ್ರತಿಕ್ರಿಯೆ',
+                feedbackSubmit: 'ಪ್ರತಿಕ್ರಿಯೆ ಸಲ್ಲಿಸಿ',
+                feedbackThanks: 'ನಿಮ್ಮ ಅಮೂಲ್ಯ ಪ್ರತಿಕ್ರಿಯೆಗೆ ಧನ್ಯವಾದಗಳು! 🙏',
+                feedbackPlaceholder: 'ನಿಮ್ಮ ಅನುಭವದ ಬಗ್ಗೆ ತಿಳಿಸಿ...',
+                voiceHelp: '🎤 ಧ್ವನಿ ಆಜ್ಞೆಗಳು: "ನಿಲ್ದಾಣಗಳನ್ನು ಹುಡುಕಿ", "ಸ್ಲಾಟ್ ಬುಕ್", "ಡ್ಯಾಶ್ಬೋರ್ಡ್", "ಮಾರ್ಗ ಯೋಜಕ", "ಪ್ರತಿಕ್ರಿಯೆ", "ಮುಖಪುಟ", "ಸಹಾಯ"',
+                downloadTitle: '📄 ಬುಕಿಂಗ್ ವಿವರಗಳು',
+                downloadStation: 'ನಿಲ್ದಾಣ',
+                downloadTime: 'ಸಮಯ',
+                downloadUser: 'ಬಳಕೆದಾರ',
+                downloadCost: 'ವೆಚ್ಚ',
+                downloadStatus: 'ಸ್ಥಿತಿ',
+                downloadCarbon: 'ಇಂಗಾಲ ಉಳಿತಾಯ',
+                downloadDate: 'ದಿನಾಂಕ',
+                downloadID: 'ಬುಕಿಂಗ್ ಐಡಿ',
+                downloadThankYou: 'ಇಕೋಚಾರ್ಜ್ ಪ್ರೊ ಆಯ್ಕೆ ಮಾಡಿದ್ದಕ್ಕೆ ಧನ್ಯವಾದಗಳು!',
+                downloadBtn: '📥 ಬುಕಿಂಗ್ ವಿವರಗಳು ಡೌನ್ಲೋಡ್',
+            }
+        };
+
+        let currentLang = 'en';
+
+        function t(key) {
+            return TRANSLATIONS[currentLang]?.[key] || key;
+        }
+
+        function applyTranslations() {
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                const val = t(key);
+                if (val) {
+                    // If it contains HTML, use innerHTML, else textContent
+                    if (val.includes('<')) {
+                        el.innerHTML = val;
+                    } else {
+                        el.textContent = val;
+                    }
+                }
+            });
+            // Update lang button text
+            const langBtn = document.getElementById('langToggle');
+            if (langBtn) {
+                langBtn.textContent = currentLang === 'en' ? 'EN / ಕ' : 'ಕ / EN';
+            }
+            // Re-render current page with new language
+            if (currentPage) {
+                renderPage(currentPage);
+            }
+        }
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'en' ? 'kn' : 'en';
+            document.documentElement.lang = currentLang;
+            if (currentLang === 'kn') {
+                document.documentElement.classList.add('lang-kn');
+            } else {
+                document.documentElement.classList.remove('lang-kn');
+            }
+            applyTranslations();
+            showToast(currentLang === 'en' ? '🌐 Switched to English' : '🌐 ಕನ್ನಡಕ್ಕೆ ಬದಲಾಯಿಸಲಾಗಿದೆ');
+        }
+
+        // ============================================================
+        //  STORAGE KEYS
+        // ============================================================
+        const STORAGE = {
+            USERS: 'ev_users_pro',
+            STATIONS: 'ev_stations_pro',
+            BOOKINGS: 'ev_bookings_pro',
+            FAVORITES: 'ev_fav_pro',
+            NOTIFICATIONS: 'ev_notif_pro',
+            CURRENT_USER: 'ev_current_pro',
+            WALLET_TX: 'ev_wallet_tx',
+            QUEUES: 'ev_queues',
+            CARBON: 'ev_carbon',
+            FEEDBACK: 'ev_feedback_pro'
+        };
+        const hashPass = pwd => CryptoJS.SHA256(pwd).toString();
+
+        function initData() {
+            if (!localStorage.getItem(STORAGE.USERS)) {
+                localStorage.setItem(STORAGE.USERS, JSON.stringify([
+                    { id: 'adm1', email: 'admin@ecocharge.com', password: hashPass('admin123'), name: 'Alex Admin',
+                        role: 'admin', wallet: 999, favorites: [], totalCarbonSaved: 0 },
+                    { id: 'usr1', email: 'emma@ev.com', password: hashPass('evuser'), name: 'Emma Watson',
+                        role: 'user', wallet: 87.50, favorites: [], totalCarbonSaved: 12.4 }
+                ]));
+            }
+            if (!localStorage.getItem(STORAGE.STATIONS)) {
+                localStorage.setItem(STORAGE.STATIONS, JSON.stringify([
+                    { id: 's1', name: '⚡ GreenPulse Downtown', lat: 40.7128, lng: -74.006,
+                        address: '200 Liberty St, NYC', chargerType: 'CCS / CHAdeMO (150kW)', basePrice: 0.49,
+                        totalSpots: 4, availableNow: 2, rating: 4.8, trafficFactor: 0.8, queueSize: 0 },
+                    { id: 's2', name: '🔆 SolarEdge Central', lat: 40.758, lng: -73.9855, address: 'Times Square',
+                        chargerType: 'Type 2 (22kW)', basePrice: 0.35, totalSpots: 6, availableNow: 3, rating: 4.6,
+                        trafficFactor: 0.6, queueSize: 1 },
+                    { id: 's3', name: '🚀 EcoCharge Brooklyn Hub', lat: 40.6782, lng: -73.9442,
+                        address: 'Brooklyn Bridge Park', chargerType: 'DC Fast (150kW)', basePrice: 0.69,
+                        totalSpots: 3, availableNow: 1, rating: 4.9, trafficFactor: 0.9, queueSize: 2 },
+                    { id: 's4', name: '🌿 Queens EV Plaza', lat: 40.7282, lng: -73.7949, address: 'Queens Blvd',
+                        chargerType: 'CCS / Type 2', basePrice: 0.42, totalSpots: 5, availableNow: 4, rating: 4.4,
+                        trafficFactor: 0.5, queueSize: 0 }
+                ]));
+            }
+            if (!localStorage.getItem(STORAGE.BOOKINGS)) localStorage.setItem(STORAGE.BOOKINGS, '[]');
+            if (!localStorage.getItem(STORAGE.FAVORITES)) localStorage.setItem(STORAGE.FAVORITES, '{}');
+            if (!localStorage.getItem(STORAGE.NOTIFICATIONS)) localStorage.setItem(STORAGE.NOTIFICATIONS, '[]');
+            if (!localStorage.getItem(STORAGE.WALLET_TX)) localStorage.setItem(STORAGE.WALLET_TX, '[]');
+            if (!localStorage.getItem(STORAGE.QUEUES)) localStorage.setItem(STORAGE.QUEUES, '{}');
+            if (!localStorage.getItem(STORAGE.CARBON)) localStorage.setItem(STORAGE.CARBON, '[]');
+            if (!localStorage.getItem(STORAGE.FEEDBACK)) localStorage.setItem(STORAGE.FEEDBACK, '[]');
+        }
+        initData();
+
+        const getUsers = () => JSON.parse(localStorage.getItem(STORAGE.USERS));
+        const getStations = () => JSON.parse(localStorage.getItem(STORAGE.STATIONS));
+        const getBookings = () => JSON.parse(localStorage.getItem(STORAGE.BOOKINGS));
+        const saveBookings = (b) => localStorage.setItem(STORAGE.BOOKINGS, JSON.stringify(b));
+        const saveUsers = (u) => localStorage.setItem(STORAGE.USERS, JSON.stringify(u));
+        const saveStations = (s) => localStorage.setItem(STORAGE.STATIONS, JSON.stringify(s));
+        const addNotification = (userId, msg) => { let n = JSON.parse(localStorage.getItem(STORAGE.NOTIFICATIONS)); n
+            .push({ userId, msg, date: new Date().toISOString(), read: false });
+            localStorage.setItem(STORAGE.NOTIFICATIONS, JSON.stringify(n)); };
+        const getFav = (uid) => { const f = JSON.parse(localStorage.getItem(STORAGE.FAVORITES)); return f[uid] || []; };
+        const saveFav = (uid, arr) => { const f = JSON.parse(localStorage.getItem(STORAGE.FAVORITES)); f[uid] = arr;
+            localStorage.setItem(STORAGE.FAVORITES, JSON.stringify(f)); };
+
+        function getDynamicPrice(station) {
+            let demandFactor = (station.totalSpots - station.availableNow) / station.totalSpots;
+            let surge = 1 + (demandFactor * 0.5);
+            return +(station.basePrice * surge).toFixed(2);
+        }
+
+        function refreshStationAvailability() {
+            let stations = getStations();
+            stations = stations.map(s => {
+                let bookings = getBookings().filter(b => b.stationId === s.id && b.status === 'active' && new Date(
+                b.date) >= new Date());
+                let bookedSpots = bookings.length;
+                let newAvailable = Math.max(0, s.totalSpots - bookedSpots);
+                return { ...s, availableNow: newAvailable };
+            });
+            saveStations(stations);
+        }
+
+        function addCarbonSavings(userId, kwh) {
+            let saved = kwh * 0.4;
+            let carbonEntries = JSON.parse(localStorage.getItem(STORAGE.CARBON));
+            carbonEntries.push({ userId, amount: saved, date: new Date().toISOString(), kwh });
+            localStorage.setItem(STORAGE.CARBON, JSON.stringify(carbonEntries));
+            let users = getUsers();
+            let user = users.find(u => u.id === userId);
+            if (user) {
+                user.totalCarbonSaved = (user.totalCarbonSaved || 0) + saved;
+                saveUsers(users);
+            }
+            return saved;
+        }
+
+        function joinQueue(stationId, userId) {
+            let queues = JSON.parse(localStorage.getItem(STORAGE.QUEUES));
+            if (!queues[stationId]) queues[stationId] = [];
+            if (!queues[stationId].includes(userId)) {
+                queues[stationId].push(userId);
+                localStorage.setItem(STORAGE.QUEUES, JSON.stringify(queues));
+                addNotification(userId, `You joined the queue for ${getStations().find(s=>s.id===stationId)?.name}. You are #${
+                    queues[stationId].length}`);
+                setTimeout(() => processQueue(stationId), 15000);
+            }
+        }
+
+        function processQueue(stationId) {
+            let queues = JSON.parse(localStorage.getItem(STORAGE.QUEUES));
+            if (queues[stationId] && queues[stationId].length > 0) {
+                let nextUser = queues[stationId].shift();
+                localStorage.setItem(STORAGE.QUEUES, JSON.stringify(queues));
+                addNotification(nextUser,
+                    `🎉 A slot just opened at ${getStations().find(s=>s.id===stationId)?.name}! Book now.`);
+            }
+        }
+
+        let currentUser = null;
+        let leafletMap = null,
+            mapMarkers = [];
+        let currentPage = 'home';
+        let lastBookingQRText = '';
+        let lastBookingData = null;
+
+        // ============================================================
+        //  AUTH
+        // ============================================================
+        function login(email, pass, remember) {
+            const users = getUsers();
+            const user = users.find(u => u.email === email && u.password === hashPass(pass));
+            if (user) {
+                currentUser = { ...user, password: undefined };
+                localStorage.setItem(STORAGE.CURRENT_USER, JSON.stringify(currentUser));
+                if (remember) localStorage.setItem('rem_ev_email', email);
+                else localStorage.removeItem('rem_ev_email');
+                updateNavbar();
+                renderPage(currentPage);
+                addNotification(currentUser.id, `🔋 Welcome back, ${currentUser.name}!`);
+                return true;
+            }
+            return false;
+        }
+
+        function signup(name, email, pass) {
+            let users = getUsers();
+            if (users.find(u => u.email === email)) return false;
+            const newUser = { id: 'u' + Date.now(), email, password: hashPass(pass), name, role: 'user', wallet: 25.0,
+                favorites: [], totalCarbonSaved: 0 };
+            users.push(newUser);
+            saveUsers(users);
+            return login(email, pass, false);
+        }
+
+        function logout() { localStorage.removeItem(STORAGE.CURRENT_USER);
+            currentUser = null;
+            updateNavbar();
+            renderPage('home'); }
+
+        function updateNavbar() {
+            const authBtn = document.getElementById('authBtn'),
+                greet = document.getElementById('userGreeting'),
+                adminNav = document.getElementById('adminNav');
+            if (currentUser) {
+                authBtn.innerText = '🚪 Logout';
+                authBtn.onclick = () => logout();
+                greet.innerHTML = `<i class="fas fa-user-circle mr-1"></i> ${currentUser.name}`;
+                if (currentUser.role === 'admin') adminNav.classList.remove('hidden');
+                else adminNav.classList.add('hidden');
+            } else {
+                authBtn.innerText = '🔑 Login / Signup';
+                authBtn.onclick = () => showAuthModal();
+                greet.innerHTML = '';
+                adminNav.classList.add('hidden');
+            }
+        }
+
+        function showAuthModal() {
+            const modalHtml = `
+            <div id="authModal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50">
+                <div class="bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-green-500/50 shadow-2xl">
+                    <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold ev-green"><i class="fas fa-charging-station"></i> EcoCharge Access</h2><i class="fas fa-times cursor-pointer text-gray-400 hover:text-white text-xl" id="closeModal"></i></div>
+                    <div class="flex space-x-2 mb-4"><button id="showLoginTab" class="flex-1 py-2 rounded-lg bg-green-700">Login</button><button id="showSignupTab" class="flex-1 py-2 rounded-lg bg-gray-700">Signup</button></div>
+                    <div id="loginForm"><input type="email" id="loginEmail" placeholder="Email" class="w-full p-3 rounded bg-gray-800 border border-gray-700 mb-3"><input type="password" id="loginPassword" placeholder="Password" class="w-full p-3 rounded bg-gray-800 mb-2"><div class="flex items-center mb-4"><input type="checkbox" id="rememberMe"><label class="ml-2">Remember me</label></div><button id="doLogin" class="btn-primary w-full py-2 rounded-lg">Login</button><p class="text-center text-sm mt-3"><a href="#" id="forgotPwdLink" class="ev-green">Forgot password?</a></p></div>
+                    <div id="signupForm" class="hidden"><input type="text" id="signupName" placeholder="Full Name" class="w-full p-3 rounded bg-gray-800 mb-3"><input type="email" id="signupEmail" placeholder="Email" class="w-full p-3 rounded bg-gray-800 mb-3"><input type="password" id="signupPassword" placeholder="Password (min 4)" class="w-full p-3 rounded bg-gray-800 mb-4"><button id="doSignup" class="btn-primary w-full py-2 rounded-lg">Create Account + $25 Bonus</button></div>
+                </div>
+            </div>`;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            document.getElementById('showLoginTab').onclick = () => { document.getElementById('loginForm').classList.remove(
+                    'hidden');
+                document.getElementById('signupForm').classList.add('hidden'); };
+            document.getElementById('showSignupTab').onclick = () => { document.getElementById('loginForm').classList.add(
+                    'hidden');
+                document.getElementById('signupForm').classList.remove('hidden'); };
+            document.getElementById('closeModal').onclick = () => document.getElementById('authModal')?.remove();
+            document.getElementById('doLogin').onclick = () => { let email = document.getElementById('loginEmail').value,
+                    pwd = document.getElementById('loginPassword').value,
+                    rem = document.getElementById('rememberMe').checked; if (login(email, pwd, rem)) document
+                    .getElementById('authModal')?.remove();
+                else alert('❌ Invalid credentials'); };
+            document.getElementById('doSignup').onclick = () => { let name = document.getElementById('signupName').value,
+                    email = document.getElementById('signupEmail').value,
+                    pwd = document.getElementById('signupPassword').value; if (name && email && pwd.length >= 4) { if (
+                        signup(name, email, pwd)) document.getElementById('authModal')?.remove();
+                    else alert('Email already exists'); } else alert('Fill all fields correctly'); };
+            document.getElementById('forgotPwdLink').onclick = (e) => { e.preventDefault();
+                alert('📧 Demo reset: use admin@ecocharge.com / admin123'); };
+        }
+
+        // ============================================================
+        //  TOAST
+        // ============================================================
+        function showToast(msg, duration = 3000) {
+            const el = document.getElementById('toast');
+            el.textContent = msg;
+            el.classList.add('show');
+            clearTimeout(el._timer);
+            el._timer = setTimeout(() => el.classList.remove('show'), duration);
+        }
+
+        // ============================================================
+        //  RENDER ENGINE
+        // ============================================================
+        function renderPage(page) {
+            refreshStationAvailability();
+            currentPage = page;
+            const container = document.getElementById('app-content');
+            if (page === 'home') container.innerHTML = renderHome();
+            else if (page === 'finder') { container.innerHTML = renderStationFinder();
+                setTimeout(() => initFinderMap(), 100); } else if (page === 'booking') container.innerHTML =
+                renderBookingPage();
+            else if (page === 'routeplanner') container.innerHTML = renderRoutePlanner();
+            else if (page === 'dashboard') container.innerHTML = renderDashboard();
+            else if (page === 'feedback') container.innerHTML = renderFeedbackPage();
+            else if (page === 'admin') { if (currentUser?.role === 'admin') container.innerHTML = renderAdminPanel();
+                else container.innerHTML =
+                    '<div class="glass-card p-8 text-center text-red-400">⛔ Access Denied. Admin only.</div>';
+                initAdminChart(); }
+            attachPageEvents();
+            // Re-apply translations after rendering
+            applyTranslations();
+        }
+
+        // ============================================================
+        //  HOME
+        // ============================================================
+        function renderHome() {
+            return `<div class="space-y-12">
+                <div class="relative rounded-3xl overflow-hidden bg-gradient-to-r from-green-900/80 to-black p-8 md:p-12 border border-green-500/30"><div class="relative z-10"><h1 class="text-4xl md:text-6xl font-bold" data-i18n="homeTitle">Drive Pure.<br>Charge <span class="ev-green animate-glow">Intelligently</span>.</h1><p class="mt-4 text-xl text-gray-300" data-i18n="homeSub">AI Recommendations · Dynamic Pricing · Carbon Tracking · Voice Control</p><div class="mt-8 flex gap-4 flex-wrap"><button onclick="document.querySelector('[data-page=\\'finder\\']').click()" class="btn-primary px-6 py-3 rounded-xl font-bold" data-i18n="homeFindBtn"><i class="fas fa-map-marker-alt mr-2"></i>Find Nearby</button><button id="aiDemoBtn" class="border border-green-500 px-6 py-3 rounded-xl hover:bg-green-900/50" data-i18n="homeAIBtn"><i class="fas fa-microchip"></i> AI Features Preview</button></div></div></div>
+                <div class="grid md:grid-cols-4 gap-5 text-center"><div class="glass-card p-5 rounded-2xl"><i class="fas fa-robot text-3xl ev-green"></i><p class="text-2xl font-bold mt-2" data-i18n="homeAIEngine">AI Engine</p><p data-i18n="homeAIEngineDesc">Smart scheduling</p></div><div class="glass-card p-5 rounded-2xl"><i class="fas fa-tree text-3xl ev-green"></i><p class="text-2xl font-bold mt-2" data-i18n="homeCarbon">Carbon Saved</p><p>${currentUser ? (currentUser.totalCarbonSaved || 0).toFixed(1) : 0} kg CO₂</p></div><div class="glass-card p-5 rounded-2xl"><i class="fas fa-tachometer-alt text-3xl ev-green"></i><p class="text-2xl font-bold mt-2" data-i18n="homeQueue">Live Queue</p><p data-i18n="homeQueueDesc">Real-time waiting</p></div><div class="glass-card p-5 rounded-2xl"><i class="fas fa-microphone-alt text-3xl ev-green"></i><p class="text-2xl font-bold mt-2" data-i18n="homeVoice">Voice Ready</p><p data-i18n="homeVoiceDesc">Tap mic</p></div></div>
+                <div class="glass-card p-6 rounded-2xl"><h2 class="text-2xl font-bold mb-4" data-i18n="homeAIFeatures"><i class="fas fa-robot ev-green mr-2"></i>🤖 AI-Powered Features (Active)</h2><div class="grid md:grid-cols-4 gap-4"><div class="bg-black/30 p-4 rounded-xl"><i class="fas fa-brain ev-green text-xl"></i><p class="font-bold" data-i18n="homeAIRecommend">Recommendation Engine</p><small data-i18n="homeAIRecommendDesc">Personalized station picks</small></div><div class="bg-black/30 p-4 rounded-xl"><i class="fas fa-tags ev-green text-xl"></i><p class="font-bold" data-i18n="homeAIPricing">Dynamic Pricing</p><small data-i18n="homeAIPricingDesc">Real-time surge</small></div><div class="bg-black/30 p-4 rounded-xl"><i class="fas fa-route ev-green text-xl"></i><p class="font-bold" data-i18n="homeAIRoute">Route Planner</p><small data-i18n="homeAIRouteDesc">Optimal EV routing</small></div><div class="bg-black/30 p-4 rounded-xl"><i class="fas fa-chart-line ev-green text-xl"></i><p class="font-bold" data-i18n="homeAIAnalytics">Live Analytics</p><small data-i18n="homeAIAnalyticsDesc">Admin dashboard</small></div></div></div>
+                <div class="grid md:grid-cols-2 gap-8"><div class="glass-card p-6 rounded-2xl text-center"><i class="fas fa-mobile-alt text-5xl ev-green mb-3"></i><h3 class="text-xl font-bold" data-i18n="homeQR">QR Check-in</h3><p data-i18n="homeQRDesc">Scan & charge seamlessly</p></div><div class="glass-card p-6 rounded-2xl"><i class="fas fa-charging-station ev-green text-3xl mb-2"></i><h3 class="text-xl font-bold" data-i18n="homeQueueSystem">Queue System</h3><p data-i18n="homeQueueSystemDesc">Join virtual queue when full → auto notification</p></div></div>
+            </div>`;
+        }
+
+        // ============================================================
+        //  STATION FINDER
+        // ============================================================
+        function renderStationFinder() {
+            return `<div><h2 class="text-3xl font-bold mb-3" data-i18n="finderTitle"><i class="fas fa-map-marked-alt ev-green"></i> Nearby EV Stations</h2><div class="grid lg:grid-cols-3 gap-6"><div class="lg:col-span-2"><div id="finderMap" class="map-container"></div><div class="mt-4 flex flex-wrap gap-2"><button data-filter="all" class="filterBtn bg-gray-800 px-4 py-2 rounded-full text-sm hover:bg-green-700" data-i18n="finderAll">All</button><button data-filter="CCS" class="filterBtn bg-gray-800 px-4 py-2 rounded-full text-sm" data-i18n="finderCCS">CCS/DC</button><button data-filter="Type 2" class="filterBtn bg-gray-800 px-4 py-2 rounded-full text-sm" data-i18n="finderType2">Type 2</button><button id="sortByDistance" class="bg-green-900 px-4 py-2 rounded-full text-sm"><i class="fas fa-arrow-down-wide-short"></i> <span data-i18n="finderDistance">Distance</span></button></div></div><div class="glass-card p-4 rounded-2xl"><h3 class="font-bold text-xl mb-2" data-i18n="finderLive">📍 Live Stations (Dynamic Price)</h3><div id="stationsList" class="space-y-3 max-h-[420px] overflow-y-auto pr-1"></div></div></div></div>`;
+        }
+
+        function initFinderMap() {
+            if (!leafletMap) { leafletMap = L.map('finderMap').setView([40.7128, -74.006], 12);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(leafletMap); }
+            navigator.geolocation.getCurrentPosition(pos => { leafletMap.setView([pos.coords.latitude, pos.coords
+                    .longitude], 13);
+                updateStationMarkers(pos.coords.latitude, pos.coords.longitude); }, () => updateStationMarkers(40.7128,
+                -74.006));
+            updateStationMarkers(40.7128, -74.006);
+            document.getElementById('sortByDistance')?.addEventListener('click', () => { navigator.geolocation
+                    .getCurrentPosition(p => updateStationMarkers(p.coords.latitude, p.coords.longitude), () =>
+                    updateStationMarkers(40.7128, -74.006)); });
+        }
+
+        function updateStationMarkers(lat, lng) {
+            if (!leafletMap) return;
+            mapMarkers.forEach(m => leafletMap.removeLayer(m));
+            let stations = getStations().map(s => ({ ...s, distance: getDistance(lat, lng, s.lat, s.lng), price: getDynamicPrice(
+                    s) })).sort((a, b) => a.distance - b.distance);
+            document.getElementById('stationsList').innerHTML = stations.map(s =>
+                `<div class="glass-card p-3 rounded-xl flex justify-between items-center"><div><p class="font-bold">${s.name}</p><p class="text-xs">${s.chargerType} | 💵 $${s.price}/h | 📍 ${s.distance.toFixed(1)}km | 🚦 Queue: ${s.queueSize}</p><p class="text-green-400"><i class="fas fa-bolt"></i> ${s.availableNow}/${s.totalSpots} free</p></div><button onclick="bookStationById('${s.id}')" class="bg-green-800 hover:bg-green-700 px-4 py-1.5 rounded-lg text-sm" data-i18n="finderBook">Book</button></div>`
+                ).join('');
+            stations.forEach(s => { let m = L.marker([s.lat, s.lng]).addTo(leafletMap).bindPopup(
+                    `<b>${s.name}</b><br>💰 $${s.price}/hr<br>🕒 ${s.availableNow} slots left<br><button onclick="bookStationById('${s.id}')">Book</button>`
+                    );
+                mapMarkers.push(m); });
+        }
+
+        function getDistance(lat1, lon1, lat2, lon2) { const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(
+                dLon / 2) ** 2; return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); }
+        window.bookStationById = (id) => { localStorage.setItem('temp_booking_station', id);
+            renderPage('booking'); };
+
+        // ============================================================
+        //  BOOKING PAGE
+        // ============================================================
+        function renderBookingPage() {
+            const stations = getStations().map(s => ({ ...s, price: getDynamicPrice(s) }));
+            const preselected = localStorage.getItem('temp_booking_station');
+            return `<div class="glass-card p-6 rounded-2xl max-w-3xl mx-auto"><h2 class="text-2xl font-bold mb-5" data-i18n="bookingTitle"><i class="fas fa-calendar-check ev-green"></i> Smart Slot + Queue + QR</h2><div class="space-y-4"><select id="stationSelect" class="w-full p-3 bg-gray-800 rounded-lg">${stations.map(s => `<option value="${s.id}" ${preselected === s.id ? 'selected' : ''}>${s.name} ($${s.price}/h) - ${s.availableNow} spots</option>`).join('')}</select><input type="date" id="bookingDate" class="w-full p-3 bg-gray-800 rounded-lg" min="${new Date().toISOString().split('T')[0]}"><select id="timeSlot" class="w-full p-3 bg-gray-800 rounded-lg"><option>08:00-09:00</option><option>10:00-11:00</option><option>12:00-13:00</option><option>14:00-15:00</option><option>16:00-17:00</option><option>18:00-19:00</option></select><button id="checkAvailBtn" class="bg-gray-700 w-full py-2 rounded-lg" data-i18n="bookingCheck"><i class="fas fa-sync-alt"></i> Check Live Availability</button><div id="availMsg" class="text-center text-sm font-medium"></div><div id="aiSuggestion" class="bg-green-900/30 p-3 rounded-lg text-xs"></div><button id="confirmBookingBtn" class="btn-primary w-full py-3 rounded-xl font-bold mt-3" data-i18n="bookingConfirm">Confirm Booking & Get QR</button><button id="joinQueueBtn" class="bg-yellow-700 w-full py-2 rounded-lg mt-2" data-i18n="bookingQueue">Join Queue if Full</button></div><div id="qrResult" class="mt-6 text-center"></div><div id="bookingDownloadSection" class="mt-4 text-center"></div><div id="checkinSection" class="mt-4 text-center"><button id="simulateCheckin" class="bg-blue-800 px-4 py-2 rounded-lg text-sm" data-i18n="bookingSimCheckin">Simulate QR Check-in</button></div></div>`;
+        }
+
+        function attachBookingEvents() {
+            const checkBtn = document.getElementById('checkAvailBtn'),
+                confirmBtn = document.getElementById('confirmBookingBtn'),
+                joinQueueBtn = document.getElementById('joinQueueBtn');
+            if (checkBtn) checkBtn.onclick = () => { const stationId = document.getElementById('stationSelect').value,
+                    date = document.getElementById('bookingDate').value,
+                    slot = document.getElementById('timeSlot').value;
+                const bookings = getBookings();
+                const taken = bookings.some(b => b.stationId === stationId && b.date === date && b.timeSlot === slot && b
+                    .status !== 'cancelled');
+                const station = getStations().find(s => s.id === stationId);
+                const dynamicPrice = getDynamicPrice(station);
+                const msg = taken ?
+                    `<span class="text-red-400" data-i18n="bookingAvailTaken">❌ Slot already occupied</span>` :
+                    `<span class="text-green-400" data-i18n="bookingAvailFree">✅ Slot free! Dynamic price: $${dynamicPrice}/h</span>`;
+                document.getElementById('availMsg').innerHTML = msg;
+                if (!taken) {
+                    document.getElementById('aiSuggestion').innerHTML =
+                        `${t('bookingAIRecommend')} ${station.trafficFactor > 0.7 ? 'after 7 PM' : 'now'}. Estimated carbon saving: ~4.2kg per charge.`;
+                }
+                applyTranslations();
+            };
+            if (confirmBtn) confirmBtn.onclick = () => {
+                if (!currentUser) { alert('Please login');
+                    showAuthModal(); return; }
+                const stationId = document.getElementById('stationSelect').value,
+                    date = document.getElementById('bookingDate').value,
+                    slot = document.getElementById('timeSlot').value;
+                const station = getStations().find(s => s.id === stationId);
+                if (!station) return;
+                const dynamicPrice = getDynamicPrice(station);
+                const bookings = getBookings();
+                if (bookings.some(b => b.stationId === stationId && b.date === date && b.timeSlot === slot && b.status !==
+                        'cancelled')) { alert('Slot already booked!'); return; }
+                const newBooking = { id: 'bk' + Date.now(), userId: currentUser.id, stationId, stationName: station
+                        .name, date, timeSlot: slot, cost: dynamicPrice, status: 'active', kwh: 25 };
+                bookings.push(newBooking);
+                saveBookings(bookings);
+                const carbonSaved = addCarbonSavings(currentUser.id, 25);
+                addNotification(currentUser.id,
+                    `✅ Booking confirmed at ${station.name} on ${date} ${slot}`);
+
+                // Store last booking for download
+                lastBookingData = { ...newBooking, carbonSaved, userName: currentUser.name };
+
+                // Generate QR
+                const qrText =
+                    `EcoCharge Booking ID: ${newBooking.id}\nStation: ${station.name}\nTime: ${date} ${slot}\nUser: ${currentUser.name}`;
+                lastBookingQRText = qrText;
+                const qrContainer = document.getElementById('qrResult');
+                qrContainer.innerHTML =
+                    `<div id="qrCodeDisplay" style="display:flex; justify-content:center; margin-bottom:10px;"></div><p class="text-green-300 mt-2" data-i18n="bookingQR">✅ Booking confirmed! Scan QR at station.</p>`;
+                const qrDiv = document.getElementById('qrCodeDisplay');
+                qrDiv.innerHTML = '';
+                new QRCode(qrDiv, { text: qrText, width: 150, height: 150 });
+
+                // Show download section
+                const downloadSection = document.getElementById('bookingDownloadSection');
+                downloadSection.innerHTML =
+                    `<div class="booking-download-card"><button id="downloadBookingBtn" class="bg-green-700 hover:bg-green-600 px-6 py-3 rounded-xl font-bold transition" data-i18n="downloadBtn">📥 Download Booking Details</button></div>`;
+                document.getElementById('downloadBookingBtn').onclick = () => downloadBookingDetails();
+
+                refreshStationAvailability();
+                applyTranslations();
+            };
+            if (joinQueueBtn) joinQueueBtn.onclick = () => { if (!currentUser) { alert('Login first'); return; }
+                const stationId = document.getElementById('stationSelect').value;
+                const station = getStations().find(s => s.id === stationId);
+                if (station.availableNow === 0) { joinQueue(stationId, currentUser.id);
+                    alert(t('bookingQueueJoined')); } else { alert(t('bookingNoSlot')); } };
+            document.getElementById('simulateCheckin')?.addEventListener('click', () => {
+                if (lastBookingQRText) {
+                    alert(
+                        `✅ QR Check-in simulated: Your session started!\n${lastBookingQRText.split('\n')[0]}\nCarbon tracking active.`
+                        );
+                } else {
+                    alert('Please make a booking first to get a QR code.');
+                }
+            });
+        }
+
+        // ============================================================
+        //  DOWNLOAD BOOKING DETAILS
+        // ============================================================
+        function downloadBookingDetails() {
+            if (!lastBookingData) {
+                alert('No booking data available. Please make a booking first.');
+                return;
+            }
+            const d = lastBookingData;
+            const lines = [
+                '═══════════════════════════════════════════',
+                '  ⚡ ECOCHARGE PRO - BOOKING DETAILS',
+                '═══════════════════════════════════════════',
+                '',
+                `  ${t('downloadID')}: ${d.id}`,
+                `  ${t('downloadStation')}: ${d.stationName}`,
+                `  ${t('downloadDate')}: ${d.date}`,
+                `  ${t('downloadTime')}: ${d.timeSlot}`,
+                `  ${t('downloadUser')}: ${d.userName || currentUser?.name || 'Guest'}`,
+                `  ${t('downloadCost')}: $${d.cost.toFixed(2)}`,
+                `  ${t('downloadStatus')}: ✅ Confirmed`,
+                `  ${t('downloadCarbon')}: ${(d.carbonSaved || 0).toFixed(2)} kg CO₂`,
+                '',
+                '───────────────────────────────────────────',
+                `  ${t('downloadThankYou')}`,
+                '───────────────────────────────────────────',
+                `  ${new Date().toLocaleString()}`,
+                '═══════════════════════════════════════════'
+            ];
+            const content = lines.join('\n');
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `EcoCharge_Booking_${d.id}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('✅ Booking details downloaded!');
+        }
+
+        // ============================================================
+        //  ROUTE PLANNER
+        // ============================================================
+        function renderRoutePlanner() {
+            return `<div class="glass-card p-6 rounded-2xl"><h2 class="text-2xl font-bold" data-i18n="routeTitle"><i class="fas fa-route ev-green"></i> EV Route Planner</h2><p class="mb-4" data-i18n="routeSub">Plan your trip with optimal charging stops (AI suggested)</p><div class="grid md:grid-cols-2 gap-4"><input type="text" id="startLoc" placeholder="${t('routeStart')}" class="bg-gray-800 p-3 rounded"><input type="text" id="endLoc" placeholder="${t('routeEnd')}" class="bg-gray-800 p-3 rounded"><button id="planRoute" class="btn-primary py-2 rounded" data-i18n="routePlan">Plan Route</button></div><div id="routeResult" class="mt-6 text-sm"></div><div id="mapRoute" class="map-container mt-4"></div></div>`;
+        }
+
+        function attachRoutePlanner() {
+            document.getElementById('planRoute')?.addEventListener('click', () => { const start = document.getElementById(
+                    'startLoc').value;
+                const end = document.getElementById('endLoc').value; if (!start || !end) { alert(
+                    'Enter both locations'); return; }
+                const stations = getStations();
+                const nearest = stations[0];
+                document.getElementById('routeResult').innerHTML =
+                    `<i class="fas fa-car"></i> Suggested route: Start → ${nearest.name} (charge 20min) → Destination. Approx distance 12km, CO₂ saved: 2.8kg. AI optimized charging stop.`;
+                if (leafletMap) leafletMap.remove();
+                const routeMap = L.map('mapRoute').setView([40.7128, -74.006], 10);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(routeMap);
+                L.marker([40.7128, -74.006]).addTo(routeMap).bindPopup('Start');
+                L.marker([40.758, -73.9855]).addTo(routeMap).bindPopup('Charging Stop');
+                L.marker([40.7282, -73.7949]).addTo(routeMap).bindPopup('Destination');
+                applyTranslations(); });
+        }
+
+        // ============================================================
+        //  DASHBOARD
+        // ============================================================
+        function renderDashboard() {
+            if (!currentUser) return `<div class="glass-card p-8 text-center"><p class="text-xl">🔒 Please login to access dashboard</p><button onclick="showAuthModal()" class="btn-primary mt-4 px-6 py-2 rounded-full">Login</button></div>`;
+            const bookings = getBookings().filter(b => b.userId === currentUser.id);
+            const active = bookings.filter(b => b.status === 'active');
+            const carbonEntries = JSON.parse(localStorage.getItem(STORAGE.CARBON)).filter(c => c.userId === currentUser
+            .id);
+            const totalCarbon = carbonEntries.reduce((s, c) => s + c.amount, 0);
+            const queues = JSON.parse(localStorage.getItem(STORAGE.QUEUES));
+            const userQueues = Object.entries(queues).filter(([_, q]) => q.includes(currentUser.id)).map(([sid]) =>
+                getStations().find(s => s.id === sid)?.name);
+            const favoriteStationId = getFav(currentUser.id)[0];
+            const recommendedStation = favoriteStationId ? getStations().find(s => s.id === favoriteStationId) :
+            getStations()[0];
+            return `<div class="grid md:grid-cols-3 gap-6"><div class="md:col-span-2 space-y-5"><div class="glass-card p-5"><h3 class="text-xl font-bold" data-i18n="dashActive"><i class="fas fa-plug ev-green"></i> Active Bookings</h3>${active.map(b=>`<div class="flex justify-between border-l-4 border-green-500 pl-3 my-2"><div>${b.stationName} - ${b.date} ${b.timeSlot}</div><button onclick="cancelBooking('${b.id}')" class="text-red-400 text-sm" data-i18n="dashCancel"><i class="fas fa-times-circle"></i> Cancel</button></div>`).join('') || `<p class="text-gray-400" data-i18n="dashNoActive">No active bookings</p>`}</div><div class="glass-card p-5"><h3 class="text-xl" data-i18n="dashCarbon"><i class="fas fa-leaf"></i> Carbon Tracking</h3><p>🌱 <span data-i18n="dashCarbonTotal">Total CO₂ saved: </span><strong class="ev-green">${totalCarbon.toFixed(2)} kg</strong> (<span data-i18n="dashTrees">equivalent to planting </span>${(totalCarbon/2.5).toFixed(1)}<span data-i18n="dashTreesEnd"> trees</span>)</p><canvas id="carbonChart" height="120"></canvas></div><div class="glass-card p-5"><h3 class="text-xl" data-i18n="dashAIRecommend"><i class="fas fa-microchip"></i> AI Recommendation Engine</h3><p>🔋 <span data-i18n="dashAIRecommendText">Based on your driving patterns, we recommend </span><strong>${recommendedStation?.name}</strong> <span data-i18n="dashAIRecommendPrice">for your next charge. Estimated price: $</span>${recommendedStation ? getDynamicPrice(recommendedStation) : '0.50'}/h.</p><button onclick="bookStationById('${recommendedStation?.id}')" class="bg-green-800 px-4 py-1 rounded text-sm mt-2" data-i18n="dashBookRecommended">Book Recommended</button></div></div><div class="glass-card p-5 space-y-4"><div><i class="fas fa-wallet text-xl ev-green"></i> <span data-i18n="dashWallet">Wallet: $</span>${currentUser.wallet.toFixed(2)}</div><div><i class="fas fa-hourglass-half"></i> <span data-i18n="dashQueueStatus">Queue Status: </span>${userQueues.length ? `${t('dashQueueText')} ${userQueues.join(', ')}` : t('dashNoQueues')}</div><div><i class="fas fa-chart-line"></i> <span data-i18n="dashPricingAlert">Dynamic Pricing Alert: Prices adjust every 15min based on demand.</span></div><div><i class="fas fa-qrcode"></i> <button id="showLastQR" class="text-green-400" data-i18n="dashLastQR">Show last booking QR</button></div></div></div>`;
+        }
+
+        function attachDashboardEvents() {
+            if (document.getElementById('carbonChart')) {
+                new Chart(document.getElementById('carbonChart'), { type: 'bar', data: { labels: ['Week1', 'Week2',
+                            'Week3'
+                        ], datasets: [{ label: 'CO₂ saved (kg)', data: [5.2, 7.8, 6.4], backgroundColor: '#4ade80' }] } });
+            }
+            document.getElementById('showLastQR')?.addEventListener('click', () => {
+                if (lastBookingQRText) {
+                    alert(`📱 Your last booking QR details:\n${lastBookingQRText}`);
+                } else {
+                    alert('No recent booking found. Make a booking to see QR.');
+                }
+            });
+        }

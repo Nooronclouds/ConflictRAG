@@ -1,36 +1,19 @@
-from pathlib import Path
-from fastapi import FastAPI, UploadFile, File, BackgroundTasks
+import json
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from app.config import settings
-from app.store import get_collection
 from app.ingest import ingest_pdf
 from app.pipeline import answer_question
+from app.store import get_collection
+from app import db
 
 app = FastAPI(title="ConflictRAG API")
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-app.add_middleware(
-    CORSMiddleware, allow_origins=["*"],
-    allow_methods=["*"], allow_headers=["*"],
-)
-
-# In-memory registry of documents and their ingestion status.
-# (Resets on restart — fine for now; we re-seed it from the store below.)
-DOCUMENTS: dict[str, dict] = {}
-
-
-def _seed_registry_from_store():
-    """On startup, list already-ingested docs from Chroma as 'ready'."""
-    data = get_collection().get(include=["metadatas"])
-    for meta in data["metadatas"]:
-        src = meta.get("source")
-        if src and src not in DOCUMENTS:
-            DOCUMENTS[src] = {"id": src, "name": meta.get("title", src),
-                              "folder": None, "status": "ready", "pages": None, "added": None}
-
-
-_seed_registry_from_store()
+db.init_db()   # create the tables on startup
 
 
 class AskRequest(BaseModel):
@@ -38,34 +21,88 @@ class AskRequest(BaseModel):
     attachment_id: str | None = None
 
 
-def _process_document(doc_id: str, path: Path):
-    """Runs in the background: ingest the PDF, then flip status ready/failed."""
-    try:
-        ingest_pdf(path)
-        DOCUMENTS[doc_id]["status"] = "ready"
-    except Exception:
-        DOCUMENTS[doc_id]["status"] = "failed"
+class FolderRequest(BaseModel):
+    name: str
+
+
+@app.get("/folders")
+def get_folders():
+    return db.list_folders()
+
+
+@app.post("/folders")
+def make_folder(req: FolderRequest):
+    fid = db.add_folder(req.name)
+    return {"id": fid, "name": req.name}
 
 
 @app.get("/documents")
-def list_documents():
-    """List documents and their live ingestion status."""
-    return {"folders": [], "files": list(DOCUMENTS.values())}
+def get_documents(folder: str | None = None):
+    return db.list_documents(folder)
+
+
+@app.delete("/folders/{fid}")
+def remove_folder(fid: str):
+    db.delete_folder(fid)
+    return {"deleted": fid}
+
+
+@app.get("/documents/view")
+def view_document(name: str):
+    """Serve the raw PDF so the frontend can open/preview it."""
+    path = settings.upload_dir / name
+    if not path.exists():
+        raise HTTPException(404, f"File not found: {name}")
+    # inline (not attachment) so the browser RENDERS the PDF in the iframe
+    # instead of triggering a download/save dialog
+    return FileResponse(str(path), media_type="application/pdf", content_disposition_type="inline")
+
+
+@app.delete("/documents")
+def remove_document(name: str):
+    """Delete a document: its chunks from ChromaDB AND its metadata row."""
+    get_collection().delete(where={"source": name})   # gone from the vector store
+    db.delete_document(name)                           # gone from the file list
+    return {"deleted": name}
+
+
+@app.get("/conversations")
+def get_conversations():
+    return db.list_conversations()
 
 
 @app.post("/ingest")
-async def ingest(background: BackgroundTasks, file: UploadFile = File(...)):
-    """Accept a PDF, return immediately as 'processing', ingest in the background."""
+async def ingest(file: UploadFile = File(...), folder: str | None = Form(None)):
     dest = settings.upload_dir / file.filename
     dest.write_bytes(await file.read())
-
-    doc_id = file.filename
-    DOCUMENTS[doc_id] = {"id": doc_id, "name": file.filename, "folder": None,
-                         "status": "processing", "pages": None, "added": None}
-    background.add_task(_process_document, doc_id, dest)
-    return {"doc_id": doc_id, "name": file.filename, "status": "processing"}
+    ingest_pdf(dest)                                 # content + vectors -> ChromaDB
+    size = f"{dest.stat().st_size / 1_000_000:.1f} MB"
+    db.add_document(file.filename, folder, size)     # metadata -> SQLite
+    return {"doc_id": file.filename, "name": file.filename, "status": "ready"}
 
 
 @app.post("/ask")
 def ask(req: AskRequest):
-    return answer_question(req.question)
+    res = answer_question(req.question)
+    res.setdefault("related_sources", [])
+
+    # "evidence" = the files behind the answer, so the middle pane can list them
+    res["evidence"] = [{
+        "id": rs["doc"],
+        "name": rs["doc"] if str(rs["doc"]).endswith(".pdf") else f'{rs["doc"]}.pdf',
+        "folder": db.folder_of(rs["doc"]),
+        "date": "—", "type": "PDF Document", "size": "—", "status": "ready",
+    } for rs in res["related_sources"]]
+
+    # save the conversation (store the FULL response so the chat can be reopened
+    # later WITHOUT re-running the pipeline)
+    cid = db.create_conversation(req.question)
+    res["conversation_id"] = cid
+    db.add_message(cid, "user", req.question)
+    db.add_message(cid, "assistant", json.dumps(res, ensure_ascii=False), res["type"])
+    return res
+
+
+@app.get("/conversations/{cid}")
+def get_conversation(cid: str):
+    return db.get_conversation(cid)
