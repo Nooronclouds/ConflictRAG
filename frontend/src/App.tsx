@@ -24,6 +24,7 @@ export default function App() {
   const [folderModal, setFolderModal] = useState(false);
   const [folderName, setFolderName] = useState("");
   const [uploading, setUploading] = useState<string | null>(null);
+  const [restoring, setRestoring] = useState<string | null>(null);
   const [viewDoc, setViewDoc] = useState<{ name: string; page?: number } | null>(null);
   const [docReturn, setDocReturn] = useState<MidView>("folder");
   const [confirmDel, setConfirmDel] = useState<{ kind: "doc" | "folder" | "chat" | "purge"; id: string; label: string } | null>(null);
@@ -110,8 +111,10 @@ export default function App() {
   }
 
   async function restoreDoc(name: string) {
-    await api.restoreDocument(name);
-    await refresh();
+    if (restoring) return;
+    setRestoring(name);              // re-indexing the PDF takes a few seconds
+    try { await api.restoreDocument(name); }
+    finally { setRestoring(null); await refresh(); }
   }
 
   async function confirmFolder() {
@@ -252,6 +255,9 @@ export default function App() {
           {uploading && (
             <div className="uploading"><span className="spin" /> {uploading}</div>
           )}
+          {restoring && (
+            <div className="uploading"><span className="spin" /> Restoring {restoring}… re-indexing the document</div>
+          )}
           {showOnboarding ? (
             <div className="empty">
               <Icon name="folder" size={64} className="big" />
@@ -274,8 +280,9 @@ export default function App() {
                       <span className={`badge ${d.status === "ready" ? "ok" : "warn"}`}>{d.status}</span>
                       {midView === "trash" ? (
                         <span className="row-actions">
-                          <button className="row-del" title="Restore" onClick={(e) => { e.stopPropagation(); restoreDoc(d.name); }}>
-                            <Icon name="refresh" size={14} />
+                          <button className="row-del" title="Restore" disabled={restoring === d.name}
+                            onClick={(e) => { e.stopPropagation(); restoreDoc(d.name); }}>
+                            {restoring === d.name ? <span className="spin" /> : <Icon name="refresh" size={14} />}
                           </button>
                           <button className="row-del danger" title="Delete permanently"
                             onClick={(e) => { e.stopPropagation(); setConfirmDel({ kind: "purge", id: d.name, label: d.name }); }}>
