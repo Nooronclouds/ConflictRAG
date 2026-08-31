@@ -3,11 +3,16 @@ from itertools import combinations
 from app.nli import check_pair
 from app.embed import embed_texts   # shared local MiniLM encoder
 
-# A conflict must clear a HIGH contradiction bar AND carry a concrete, structured
-# cue about a SHARED subject. Whole-chunk NLI over a corpus of related documents
-# fires constantly (two papers discussing a topic differently is NOT a user-facing
-# conflict); these gates keep only genuine "same fact, different value" clashes.
-CONFLICT_THRESHOLD = 0.85
+# CONFLICT_THRESHOLD — NLI separability on the (short) benchmark claim pairs; used
+# by run_eval.py. Kept at 0.6 where it gives the reported detection F1.
+CONFLICT_THRESHOLD = 0.6
+
+# DETECT_THRESHOLD — the DEPLOYED pipeline's bar on long, real documents. Higher,
+# because whole-document NLI over a corpus of related papers fires constantly (two
+# papers discussing a topic differently is NOT a user-facing conflict). Combined
+# with the structural gates below, this keeps only genuine "same fact, different
+# value" clashes.
+DETECT_THRESHOLD = 0.85
 
 REVISION_WORDS = ["revised", "amended", "amendment", "supersede", "superseded",
                   "effective", "updated", "addendum", "with effect from", "w.e.f"]
@@ -117,7 +122,7 @@ def detect_conflicts(hits: list[dict], question: str | None = None) -> list[dict
             continue
         score = max(check_pair(c1, c2)["scores"]["contradiction"],
                     check_pair(c2, c1)["scores"]["contradiction"])
-        if score < CONFLICT_THRESHOLD:
+        if score < DETECT_THRESHOLD:
             continue
         if not _concrete_cue(c1, c2):          # no structured signal → not a real conflict
             continue

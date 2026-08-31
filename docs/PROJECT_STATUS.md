@@ -102,12 +102,33 @@ to `db.py`/`store.py`.
 - False-alarm rate on negatives: paraphrase 2.5%, same_domain 3.3% (hard), unrelated 5.0%.
 - Threshold sweep available (0.5->0.9); precision rises to 0.974 at 0.9 with recall 0.853.
 
-**Conflict-type CLASSIFICATION** (rule-based, `run_classify_eval.py`):
-- **72.4% overall.** By source: planted **100%**, ConflictBank **63.7%**.
-- By type: contradictory 100%, temporal 92.1%, factual 34.2%.
+**Conflict-type CLASSIFICATION** (rule-based, `run_eval.py`):
+- **74.7% overall** (295/395). By type: contradictory **100%**, temporal **100%**, factual 34.2%.
+- (Improved from 72.4% on 2026-08-31: years are no longer counted as "factual" numbers,
+  so temporal went 92.1% -> 100%.)
 - Honest limitation: ConflictBank "misinformation->factual" pairs are entity swaps with no surface
   number/date/negation cue, so they misclassify. Documented as a limitation; a trained classifier is future work.
   (An LLM classifier via the 3B model was tried and did WORSE — dropped.)
+
+## 6b. Conflict over-triggering fix (2026-08-31)
+
+**Problem:** on a KB of *related* documents (e.g. many arxiv papers), whole-chunk NLI
+flagged almost every question as "sources disagree" — ConflictRAG felt like a conflict
+detector, not "normal RAG but better".
+
+**Fix (`conflict.py`):** a conflict now requires ALL of —
+1. **sentence-level** comparison: each source's claim sentence most relevant to the
+   question (via local MiniLM, `app/embed.py`), not whole 800-char chunks;
+2. a **junk filter** that drops titles, author lines, references, formula fragments
+   (the biggest false-positive source);
+3. **high contradiction** (>= `DETECT_THRESHOLD` 0.85), both NLI directions;
+4. a **concrete structured cue about a SHARED subject** — different numbers/dates or a
+   negation/antonym — matching the Factual/Temporal/Contradictory taxonomy.
+
+**Two thresholds, on purpose:** `CONFLICT_THRESHOLD` (0.6) is NLI separability on the
+short benchmark claim pairs (run_eval.py, F1 0.948); `DETECT_THRESHOLD` (0.85) is the
+deployed pipeline's stricter bar on long real documents. Verified: general questions
+answer normally (confident); the office-days / travel-allowance conflicts are still caught.
 
 ## 6a. Latest session changes (2026-08-29)
 
