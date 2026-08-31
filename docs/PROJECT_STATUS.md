@@ -119,12 +119,14 @@ questions, baseline RAG vs ConflictRAG.
 
 | metric | baseline | ConflictRAG |
 |---|---|---|
-| conflict-handling recall (flag/resolve vs silently answer one side) | **0%** | **80%** (4/5) |
+| conflict-handling recall (flag/resolve vs silently answer one side) | **0%** | **100%** (5/5) |
 | false-positive rate on consistent questions | 0% | **0%** |
 
 This is the end-to-end analogue of the component detection F1 (0.948): naive RAG
-silently answers conflicting sources; ConflictRAG flags/resolves them, without
-false-flagging consistent questions. (1 miss: a combined 5-vs-7-years + date conflict.)
+silently answers conflicting sources; ConflictRAG flags/resolves all of them, without
+false-flagging consistent questions — and, on the real arxiv KB, general questions still
+answer normally (no over-triggering). Precision comes from filtering citations/reference
+lines (their publication years were causing spurious temporal conflicts).
 
 ## 6b. Conflict over-triggering fix (2026-08-31)
 

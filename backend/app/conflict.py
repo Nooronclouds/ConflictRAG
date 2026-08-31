@@ -23,6 +23,12 @@ ANTONYMS = [("allowed", "prohibited"), ("allowed", "banned"), ("permitted", "pro
             ("eligible", "ineligible"), ("legal", "illegal"), ("valid", "invalid"),
             ("required", "not required")]
 
+# Reference / citation markers — bibliography entries leak publication years that
+# fire spurious "temporal" conflicts, so they must never be treated as claims.
+_CITATION = re.compile(r"\b(et al|arxiv|preprint|proceedings|conference on|journal of|pp\.|vol\.|doi)\b", re.I)
+_CITE_YEAR_END = re.compile(r",\s*(?:19|20)\d{2}[a-z]?\.?\s*$")   # "..., 2024."
+_ARXIV_ID = re.compile(r"\b\d{4}\.\d{4,5}\b")                      # "2506.05154"
+
 _STOP = {"the", "and", "that", "this", "with", "from", "have", "which", "their", "there",
          "these", "those", "about", "large", "language", "models", "model", "using", "based",
          "such", "when", "what", "into", "than", "them", "they", "were", "will", "would",
@@ -43,14 +49,21 @@ def _is_prose(sentence: str) -> bool:
     """Reject titles, author lines, reference entries, formula/symbol fragments —
     they aren't factual claims and are the main source of false conflicts."""
     s = sentence.strip()
-    if len(s.split()) < 6:
+    words = s.split()
+    if len(words) < 6:
         return False
+    if _CITATION.search(s) or _CITE_YEAR_END.search(s) or _ARXIV_ID.search(s):
+        return False                      # bibliography / citation, not a claim
     letters = [c for c in s if c.isalpha()]
     if letters and sum(c.isupper() for c in letters) / len(letters) > 0.4:
-        return False                      # mostly-capitalised → a heading/title
+        return False                      # mostly-capitalised → an ALL-CAPS heading
     if sum(not c.isalnum() and not c.isspace() for c in s) > len(s) * 0.25:
         return False                      # symbol-heavy → math / citations
-    return bool(re.search(r"\b(is|are|was|were|has|have|must|can|will|does|do|no|not)\b", s.lower()))
+    # Title / author lines have most words Capitalised; real prose does not.
+    capitalised = sum(1 for w in words if w[:1].isupper())
+    if capitalised / len(words) > 0.5:
+        return False
+    return True
 
 
 def _numbers(text: str) -> list:
