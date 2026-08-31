@@ -110,6 +110,22 @@ to `db.py`/`store.py`.
   number/date/negation cue, so they misclassify. Documented as a limitation; a trained classifier is future work.
   (An LLM classifier via the 3B model was tried and did WORSE — dropped.)
 
+## 6c. End-to-end conflict-handling eval (2026-08-31, `run_conflict_eval.py`)
+
+Controlled benchmark: the script ingests its OWN planted-conflict corpus into a
+separate collection (`conflictrag_eval`), so it needs no pre-existing KB and is fully
+reproducible. 5 planted conflicts (factual/temporal/contradictory) + 5 consistent
+questions, baseline RAG vs ConflictRAG.
+
+| metric | baseline | ConflictRAG |
+|---|---|---|
+| conflict-handling recall (flag/resolve vs silently answer one side) | **0%** | **80%** (4/5) |
+| false-positive rate on consistent questions | 0% | **0%** |
+
+This is the end-to-end analogue of the component detection F1 (0.948): naive RAG
+silently answers conflicting sources; ConflictRAG flags/resolves them, without
+false-flagging consistent questions. (1 miss: a combined 5-vs-7-years + date conflict.)
+
 ## 6b. Conflict over-triggering fix (2026-08-31)
 
 **Problem:** on a KB of *related* documents (e.g. many arxiv papers), whole-chunk NLI
