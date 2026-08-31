@@ -102,7 +102,7 @@ def answer_question(question: str, mode: str = "conflictrag", scope: str | None 
 
     if mode == "conflictrag":
         t0 = time.perf_counter()
-        conflicts = detect_conflicts(relevant)
+        conflicts = detect_conflicts(relevant, question)
         det_dur = int((time.perf_counter() - t0) * 1000)
 
         pairs_count = sum(1 for a, b in combinations(relevant, 2) if a["source"] != b["source"])

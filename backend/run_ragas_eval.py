@@ -1,42 +1,41 @@
 """
 Phase 5 — answer-quality evaluation (baseline RAG vs ConflictRAG).
 
-Everything runs LOCALLY (privacy preserved). Two complementary metrics:
+RAGAS-STYLE metrics computed FULLY LOCALLY and deterministically. We do NOT use
+RAGAS's LLM judge: with a local privacy-preserving model it returns NaN
+(faithfulness) and times out (relevancy). Instead we measure the same things
+with the models the project already runs — no cloud, no network, reproducible:
 
-  - faithfulness      : is every sentence of the answer supported by the
-                        retrieved context? Computed with the project's own
-                        DeBERTa NLI model (entailment) — deterministic and
-                        reliable. RAGAS's LLM-based faithfulness returns NaN
-                        with a small local judge, so we use our NLI instead
-                        (this is exactly RAGAS's definition of faithfulness).
+  - faithfulness     : fraction of answer sentences ENTAILED by the retrieved
+                       context, via the project's DeBERTa NLI model. This is
+                       exactly RAGAS's definition of faithfulness (grounding).
 
-  - answer_relevancy  : does the answer actually address the question?
-                        Scored by RAGAS with a local Ollama judge (llama3.1:8b)
-                        + nomic-embed-text embeddings.
+  - answer_relevancy : cosine similarity between the question and the answer in
+                       the local MiniLM embedding space (higher = the answer is
+                       on-topic for the question).
+
+Everything is offline: MiniLM + DeBERTa load from the local HuggingFace cache,
+answers come from local Ollama. To guarantee zero network calls, first download
+the models once, then set  HF_HUB_OFFLINE=1  and  TRANSFORMERS_OFFLINE=1 .
 
 Run:
     cd conflictRAG/backend
     .venv\\Scripts\\activate
-    pip install "ragas==0.1.21" langchain-ollama langchain-community datasets
     python run_ragas_eval.py
 """
 import re
 import warnings
 warnings.filterwarnings("ignore")
 
-from datasets import Dataset
-from ragas import evaluate
-from ragas.metrics import answer_relevancy
-from langchain_ollama import ChatOllama, OllamaEmbeddings
+from sentence_transformers import SentenceTransformer, util
 
 from app.retrieve import retrieve
 from app.pipeline import answer_question
 from app.nli import check_pair
 from app.config import settings
 
-JUDGE_MODEL = "llama3.1:8b"
-EMBED_MODEL = "nomic-embed-text"
 TOP_K = settings.top_k
+_embed = SentenceTransformer(settings.embedding_model)   # all-MiniLM-L6-v2, local
 
 # Edit / extend. Pick questions your KB can actually answer; the last is a
 # deliberate conflict case (baseline blends, ConflictRAG handles it).
@@ -71,57 +70,51 @@ def _sentences(text: str) -> list[str]:
 
 
 def faithfulness_nli(answer: str, contexts: list[str]) -> float | None:
-    """Fraction of answer sentences ENTAILED by at least one retrieved chunk.
-    Uses the project's DeBERTa NLI (premise = chunk, hypothesis = sentence)."""
+    """Fraction of answer sentences ENTAILED by at least one retrieved chunk."""
     sents = _sentences(answer)
     if not sents or not contexts:
         return None
-    supported = 0
-    for s in sents:
-        if any(check_pair(c, s)["label"] == "entailment" for c in contexts):
-            supported += 1
+    supported = sum(
+        1 for s in sents
+        if any(check_pair(c, s)["label"] == "entailment" for c in contexts)
+    )
     return supported / len(sents)
 
 
-def build_rows(mode: str) -> list[dict]:
-    rows = []
+def answer_relevancy(question: str, answer: str) -> float:
+    """Cosine similarity of question and answer in the local embedding space."""
+    qv = _embed.encode(question, convert_to_tensor=True, normalize_embeddings=True)
+    av = _embed.encode(answer, convert_to_tensor=True, normalize_embeddings=True)
+    return float(util.cos_sim(qv, av).item())
+
+
+def score_mode(mode: str) -> dict:
+    print(f"\n>>> Scoring mode = {mode} ...")
+    faith, relev = [], []
     for q in QUESTIONS:
         ctx = contexts_for(q)
         ans = answer_text(answer_question(q, mode=mode))
         if not ans or not ctx:
-            print(f"   [skip] {mode}: no answer/context for {q!r}")
+            print(f"   [skip] no answer/context for {q!r}")
             continue
-        rows.append({"question": q, "answer": ans, "contexts": ctx})
-    return rows
-
-
-def score_mode(mode: str, llm, emb) -> dict:
-    print(f"\n>>> Scoring mode = {mode} ...")
-    rows = build_rows(mode)
-
-    # faithfulness — local NLI, one score per row
-    faith = [faithfulness_nli(r["answer"], r["contexts"]) for r in rows]
-    faith = [f for f in faith if f is not None]
-    faithfulness = sum(faith) / len(faith) if faith else float("nan")
-
-    # answer relevancy — RAGAS with the local judge
-    ds = Dataset.from_list(rows)
-    ragas_res = evaluate(ds, metrics=[answer_relevancy], llm=llm, embeddings=emb,
-                         raise_exceptions=False)
-    relevancy = float(ragas_res["answer_relevancy"])
-
-    return {"n": len(rows), "faithfulness": faithfulness, "answer_relevancy": relevancy}
+        f = faithfulness_nli(ans, ctx)
+        if f is not None:
+            faith.append(f)
+        relev.append(answer_relevancy(q, ans))
+        print(f"   [{mode}] faith={f:.2f} relev={relev[-1]:.2f}  {q}")
+    return {
+        "n": len(relev),
+        "faithfulness": sum(faith) / len(faith) if faith else float("nan"),
+        "answer_relevancy": sum(relev) / len(relev) if relev else float("nan"),
+    }
 
 
 def main():
-    llm = ChatOllama(model=JUDGE_MODEL, temperature=0)
-    emb = OllamaEmbeddings(model=EMBED_MODEL)
-
-    baseline = score_mode("baseline", llm, emb)
-    conflictrag = score_mode("conflictrag", llm, emb)
+    baseline = score_mode("baseline")
+    conflictrag = score_mode("conflictrag")
 
     print("\n" + "=" * 64)
-    print(f"{'metric':<22}{'baseline':>12}{'conflictrag':>14}{'Δ':>10}")
+    print(f"{'metric':<22}{'baseline':>12}{'conflictrag':>14}{'delta':>10}")
     print("-" * 64)
     for m in ("faithfulness", "answer_relevancy"):
         b, c = baseline[m], conflictrag[m]
@@ -129,8 +122,8 @@ def main():
     print("-" * 64)
     print(f"{'questions scored':<22}{baseline['n']:>12}{conflictrag['n']:>14}")
     print("=" * 64)
-    print("Higher is better. Δ = conflictrag − baseline.")
-    print("faithfulness = NLI-entailed answer sentences; relevancy = RAGAS (local judge).")
+    print("Higher is better. delta = conflictrag - baseline.")
+    print("faithfulness = NLI-entailed answer sentences; relevancy = embedding cosine.")
 
 
 if __name__ == "__main__":
