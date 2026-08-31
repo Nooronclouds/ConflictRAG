@@ -1,0 +1,12 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+data/
+*.db
+*.sqlite3
+.pytest_cache/
+run_eval.py
+run_classify_eval.py
+run_ragas_eval.py
+run_conflict_eval.py

@@ -1,0 +1,23 @@
+# ConflictRAG — one-command self-host.
+# Prerequisite on the HOST: Ollama running with the models pulled:
+#   ollama pull llama3.2:3b
+#   ollama pull nomic-embed-text
+# Then:  docker compose up --build     (open http://localhost:5173)
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      OLLAMA_URL: http://host.docker.internal:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # reach the host's Ollama (Linux)
+    volumes:
+      - ./data:/app/data                       # KB persists here; empty on a fresh machine
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
