@@ -170,7 +170,9 @@ answer normally (confident); the office-days / travel-allowance conflicts are st
 - [ ] **Agent-trace emission**: have the pipeline record each step (retrieve -> detect -> classify -> reconcile ->
       generate) and expose it in the `/ask` response so the frontend Trace UI can render it. (Not started.)
 - [ ] (stretch, "full CARL" per proposal) multi-hop retrieval; ReAct tool verification (web/calc/python); token streaming.
-- [ ] Docker packaging (Phase 6) for one-command self-hosting.
+- [x] ~~Docker packaging (Phase 6)~~ — DONE & verified. `docker compose up --build`
+      brings up backend+frontend; Ollama runs natively on the host. Models baked into
+      the backend image (offline). Starts with an EMPTY KB on any machine. See `DOCKER.md`.
 - Backlog quality items (see `BACKLOG.md`): citations = used-not-retrieved; drop low-relevance related_sources;
       sentence-level conflict detection; prune NLI pairs for speed; tune the relevance gate threshold (currently 0.35).
 
