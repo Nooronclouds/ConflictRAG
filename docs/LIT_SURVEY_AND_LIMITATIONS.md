@@ -90,15 +90,17 @@
 
 [7] L. Huang, W. Yu, W. Ma, W. Zhong, Z. Feng, H. Wang, Q. Chen, W. Peng, X. Feng, B. Qin, and T. Liu, "A survey on hallucination in large language models: Principles, taxonomy, challenges, and open questions," arXiv:2311.05232, 2023.
 
-[8] P. He, X. Liu, J. Gao, and W. Chen, "DeBERTa: Decoding-enhanced BERT with disentangled attention," in *Proc. Int. Conf. Learning Representations (ICLR)*, 2021.
+[8] P. He, J. Gao, and W. Chen, "DeBERTaV3: Improving DeBERTa using ELECTRA-style pre-training with gradient-disentangled embedding sharing," in *Proc. Int. Conf. Learning Representations (ICLR)*, 2023. (arXiv:2111.09543) — base of our NLI model.
 
-[9] N. Reimers and I. Gurevych, "Sentence-BERT: Sentence embeddings using Siamese BERT-networks," in *Proc. EMNLP-IJCNLP*, 2019.
+[9] N. Reimers and I. Gurevych, "Sentence-BERT: Sentence embeddings using Siamese BERT-networks," in *Proc. EMNLP-IJCNLP*, 2019. (arXiv:1908.10084)
 
-[10] Z. Su, J. Zhang, X. Qu, T. Zhu, Y. Li, J. Sun, J. Li, M. Zhang, and Y. Cheng, "ConflictBank: A benchmark for evaluating the influence of knowledge conflicts in LLMs," in *Advances in Neural Information Processing Systems (NeurIPS)*, 2024.
+[10] W. Wang, F. Wei, L. Dong, H. Bao, N. Yang, and M. Zhou, "MiniLM: Deep self-attention distillation for task-agnostic compression of pre-trained transformers," in *Advances in Neural Information Processing Systems (NeurIPS)*, 2020. (arXiv:2002.10957) — our embedding model (all-MiniLM-L6-v2).
+
+[11] Z. Su et al., "ConflictBank: A benchmark for evaluating the influence of knowledge conflicts in large language models," in *Advances in Neural Information Processing Systems (NeurIPS)*, 2024. (arXiv:2408.12076 — verify ID/authors) — our evaluation dataset.
 
 ### Additional surveys reviewed
-[11] A. Singh, A. Ehtesham, S. Kumar, and T. T. Khoei, "Agentic retrieval-augmented generation: A survey on agentic RAG," arXiv:2501.09136, 2025.
+[12] A. Singh, A. Ehtesham, S. Kumar, and T. T. Khoei, "Agentic retrieval-augmented generation: A survey on agentic RAG," arXiv:2501.09136, 2025.
 
-[12] Y. Li, X. Fu, G. Verma, P. Buitelaar, and M. Liu, "Mitigating hallucination in large language models (LLMs): An application-oriented survey on RAG, reasoning, and agentic systems," arXiv:2510.24476, 2025.
+[13] Y. Li, X. Fu, G. Verma, P. Buitelaar, and M. Liu, "Mitigating hallucination in large language models (LLMs): An application-oriented survey on RAG, reasoning, and agentic systems," arXiv:2510.24476, 2025.
 
-[13] J. Liang, G. Su, H. Lin, Y. Wu, R. Zhao, and Z. Li, "Reasoning RAG via System 1 or System 2: A survey on reasoning agentic retrieval-augmented generation for industry challenges," arXiv:2506.10408, 2025.
+[14] J. Liang, G. Su, H. Lin, Y. Wu, R. Zhao, and Z. Li, "Reasoning RAG via System 1 or System 2: A survey on reasoning agentic retrieval-augmented generation for industry challenges," arXiv:2506.10408, 2025.
